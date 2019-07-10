@@ -277,6 +277,11 @@ class Contact(models.Model):
     is_globally_read_only = models.BooleanField(default=False)
     updated = models.DateTimeField(editable=False)
 
+class Note_Types(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.CharField(max_length=200)
+    No_of_notes = models.CharField(max_length=8, choices=(('Single','Single'),('Multiple','Multiple')), null=False, blank=False)
+
 
 class Product_Type(models.Model):
     name = models.CharField(max_length=255, unique=True)

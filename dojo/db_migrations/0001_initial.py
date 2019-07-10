@@ -490,6 +490,16 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name='Note_Types',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=100, unique=True)),
+                ('description', models.CharField(max_length=200)),
+                ('No_of_notes', multiselectfield.db.fields.MultiSelectField(blank=False,choices=[(b'Single',b'Single'),(b'Multiple',b'Multiple')], default=b'Multiple', max_length=8)),
+
+            ],
+        ),
+        migrations.CreateModel(
             name='Notifications',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),

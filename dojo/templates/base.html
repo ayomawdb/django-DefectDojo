@@ -193,7 +193,7 @@
                                         <i class="fa fa-bug fa-fw"></i>
                                         <span>Findings</span>
                                         <span class="glyphicon arrow"></span>
-				    </a>
+				                            </a>
                                     <ul class="nav nav-second-level">
                                         <li>
                                             <a href="{% url 'open_findings' %}">Open Findings</a>
@@ -213,6 +213,7 @@
                                     </ul>
                                     <!-- /.nav-second-level -->
                                 </li>
+
                                 <li>
                                     <a href="#" aria-expanded="false" aria-label="Endpoints">
 					                    <i class="fa fa-sitemap fa-fw"></i>
@@ -295,6 +296,7 @@
                                         <li><a href="{% url 'rules' %}">Rules Framework </a></li>
                                         {% if request.user.is_superuser %}
                                         <li><a href="{% url 'system_settings' %}">System Settings </a></li>
+                                        <li><a href="{% url 'note_type' %}">Note Types </a></li>
                                         {% endif %}
                                     </ul>
                                 </li>

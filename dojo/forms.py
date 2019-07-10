@@ -14,7 +14,7 @@ from django.utils.dates import MONTHS
 from django.utils.safestring import mark_safe
 from django.utils import timezone
 from tagging.models import Tag
-from dojo.models import Finding, Product_Type, Product, ScanSettings, VA, \
+from dojo.models import Finding, Product_Type, Product, Note_Types, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
@@ -207,6 +207,21 @@ class DeleteProductForm(forms.ModelForm):
                    'platform', 'lifecycle', 'origin', 'user_records', 'revenue', 'external_audience',
                    'internet_accessible', 'regulations', 'product_meta']
 
+class NoteTypeForm(forms.ModelForm):
+    name = forms.CharField(max_length=50, required=True)
+    description = forms.CharField(widget=forms.Textarea(attrs={}),
+                                  required=True)
+    NO_OF_NOTES_CHOICES = (('Single','Single'), ('Multiple','Multiple'))
+    No_of_notes= forms.ChoiceField(required=True, choices=NO_OF_NOTES_CHOICES)
+
+    class Meta:
+        model = Note_Types
+        fields = ['name', 'description', 'No_of_notes']
+
+class Delete_Note_TypeForm(forms.ModelForm):
+    class Meta:
+        model = Note_Types
+        exclude = ['name', 'description', 'No_of_notes']
 
 class DojoMetaDataForm(forms.ModelForm):
     value = forms.CharField(widget=forms.Textarea(attrs={}),
