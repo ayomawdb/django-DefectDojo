@@ -14,7 +14,7 @@ from django_filters.filters import ChoiceFilter, _truncate, DateTimeFilter
 from pytz import timezone
 
 from dojo.models import Dojo_User, Product_Type, Finding, Product, Test_Type, \
-    Endpoint, Development_Environment, Finding_Template, Report, Note_Types
+    Endpoint, Development_Environment, Finding_Template, Report, Note_Type
 from dojo.utils import get_system_setting
 
 local_tz = timezone(get_system_setting('time_zone'))
@@ -1006,10 +1006,11 @@ class NoteTypesFilter(DojoFilter):
             ('name', 'name'),
             ('description', 'description'),
             ('No_of_notes', 'No_of_notes'),
+            ('is_mandatory', 'is_mandatory'),
         ),
     )
 
     class Meta:
-        model = Note_Types
+        model = Note_Type
         exclude = []
         include = ('name','No_of_notes','description')

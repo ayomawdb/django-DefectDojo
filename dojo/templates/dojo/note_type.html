@@ -43,8 +43,10 @@
                         <thead>
                         <tr>
                             <th>{% dojo_sort request 'Note Type' 'name' 'asc' %}</th>
-                            <th> description</th>
-                            <th> No_of_notes</th>
+                            <th> Description</th>
+                            <th> Single/Multiple</th>
+                            <th> Mandatory/Optional</th>
+                            <th> Active/Disabled</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -53,7 +55,22 @@
                               <td><a> {{ nt.name }} </a></td>
                               <td><a>{{ nt.description }}</a></td>
                               <td><a>{{ nt.No_of_notes }}</a></td>
-                                {% if user.is_superuser %}
+                              <td>
+                                {% if nt.is_mandatory %}
+                                  <a>Mandatory</a>
+                                {% else %}
+                                <a>Optional</a>
+                                {% endif %}
+                              </td>
+                              <td>
+                                {% if nt.is_active %}
+                                  <a>Active</a>
+                                {% else %}
+                                <a>Disabled</a>
+                                {% endif %}
+                              </td>
+
+                              {% if user.is_superuser %}
                                     <td>
                                         <div class="centered">
                                             <div class="btn-group" role="group">

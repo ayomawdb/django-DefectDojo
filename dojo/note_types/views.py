@@ -6,8 +6,8 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
-from dojo.forms import NoteTypeForm , Delete_Note_TypeForm
-from dojo.models import Note_Types
+from dojo.forms import NoteTypeForm, EditNoteTypeForm
+from dojo.models import Note_Type
 from dojo.filters import NoteTypesFilter
 from dojo.utils import get_page_items, add_breadcrumb
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @user_passes_test(lambda u: u.is_superuser)
 def note_type(request):
-    initial_queryset = Note_Types.objects.all().order_by('name')
+    initial_queryset = Note_Type.objects.all().order_by('name')
     name_words = [note_type.name for note_type in
                   initial_queryset]
     ntl = NoteTypesFilter(request.GET, queryset=initial_queryset)
@@ -31,11 +31,16 @@ def note_type(request):
 
 @user_passes_test(lambda u: u.is_superuser)
 def edit_note_type(request, ntid):
-    nt = get_object_or_404(Note_Types, pk=ntid)
-    nt_form = NoteTypeForm(instance=nt)
-    delete_nt_form = Delete_Note_TypeForm(instance=nt)
+    nt = get_object_or_404(Note_Type, pk=ntid)
+    if nt.No_of_notes == 'Multiple':
+        nt_form = EditNoteTypeForm(instance=nt)
+    else:
+        nt_form = NoteTypeForm(instance=nt)
     if request.method == "POST" and request.POST.get('edit_note_type'):
-        nt_form = NoteTypeForm(request.POST, instance=nt)
+        if nt.No_of_notes == 'Multiple':
+            nt_form = EditNoteTypeForm(request.POST, instance=nt)
+        else:
+            nt_form = NoteTypeForm(request.POST, instance=nt)
         if nt_form.is_valid():
             nt = nt_form.save()
             messages.add_message(
@@ -45,14 +50,23 @@ def edit_note_type(request, ntid):
                 extra_tags="alert-success",
             )
             return HttpResponseRedirect(reverse("note_type"))
-    if request.method == "POST" and request.POST.get("delete_note_type"):
-        form2 = Delete_Note_TypeForm(request.POST, instance=nt)
-        if form2.is_valid():
-            nt.delete()
+    if request.method == "POST" and request.POST.get("disable_note_type"):
+            nt.is_active=False
+            nt.save()
             messages.add_message(
                 request,
                 messages.SUCCESS,
-                "Note type Deleted successfully.",
+                "Note type Disabled successfully.",
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(reverse("note_type"))
+    if request.method == "POST" and request.POST.get("re-activate_note_type"):
+            nt.is_active=True
+            nt.save()
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Note type Activated successfully.",
                 extra_tags="alert-success",
             )
             return HttpResponseRedirect(reverse("note_type"))

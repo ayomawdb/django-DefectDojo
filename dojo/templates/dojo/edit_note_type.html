@@ -3,11 +3,14 @@
     <h3> Edit Note Type {{ nt.name }}</h3>
     <form class="form-horizontal" action="{% url 'edit_note_type' nt.id %}" method="post">{% csrf_token %}
         {% include "dojo/form_fields.html" with form=nt_form %}
-        {{ delete_nt_form }}
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
-                <input aria-label="Edit Note type" class="btn btn-primary" name="edit_note_type" type="submit" value="Submit"/>
-                <input aria-label="Delete Note type" class="btn btn-danger" name="delete_note_type" type="submit" value="Delete"/>
+                <input aria-label="Edit Note type" class="btn btn-primary" name="edit_note_type" type="submit" value="Save Changes"/>
+                {% if nt.is_active %}
+                <input aria-label="Disable Note type" class="btn btn-danger" name="disable_note_type" type="submit" value="Disable"/>
+                {% else %}
+                <input aria-label="Re-activate Note type" class="btn btn-danger" name="re-activate_note_type" type="submit" value="Re-activate"/>
+                {% endif %}
             </div>
         </div>
     </form>

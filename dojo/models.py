@@ -277,10 +277,15 @@ class Contact(models.Model):
     is_globally_read_only = models.BooleanField(default=False)
     updated = models.DateTimeField(editable=False)
 
-class Note_Types(models.Model):
+class Note_Type(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.CharField(max_length=200)
     No_of_notes = models.CharField(max_length=8, choices=(('Single','Single'),('Multiple','Multiple')), null=False, blank=False)
+    is_active = models.BooleanField(default=True, null=False)
+    is_mandatory = models.BooleanField(default=True, null=False)
+
+    def __unicode__(self):
+        return self.name
 
 
 class Product_Type(models.Model):
@@ -940,6 +945,8 @@ class Endpoint(models.Model):
 
 
 class Notes(models.Model):
+    note_type = models.ForeignKey(Note_Type, related_name='note_type',
+                                  null=False, blank=False)
     entry = models.TextField()
     date = models.DateTimeField(null=False, editable=False,
                                 default=get_current_datetime)

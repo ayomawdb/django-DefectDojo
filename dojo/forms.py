@@ -14,7 +14,7 @@ from django.utils.dates import MONTHS
 from django.utils.safestring import mark_safe
 from django.utils import timezone
 from tagging.models import Tag
-from dojo.models import Finding, Product_Type, Product, Note_Types, ScanSettings, VA, \
+from dojo.models import Finding, Product_Type, Product, Note_Type, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
     JIRA_Issue, JIRA_PKey, JIRA_Conf, UserContactInfo, Tool_Type, Tool_Configuration, Tool_Product_Settings, \
@@ -208,20 +208,16 @@ class DeleteProductForm(forms.ModelForm):
                    'internet_accessible', 'regulations', 'product_meta']
 
 class NoteTypeForm(forms.ModelForm):
-    name = forms.CharField(max_length=50, required=True)
     description = forms.CharField(widget=forms.Textarea(attrs={}),
                                   required=True)
-    NO_OF_NOTES_CHOICES = (('Single','Single'), ('Multiple','Multiple'))
-    No_of_notes= forms.ChoiceField(required=True, choices=NO_OF_NOTES_CHOICES)
-
     class Meta:
-        model = Note_Types
-        fields = ['name', 'description', 'No_of_notes']
+        model = Note_Type
+        fields = ['name', 'description', 'No_of_notes','is_mandatory']
 
-class Delete_Note_TypeForm(forms.ModelForm):
-    class Meta:
-        model = Note_Types
-        exclude = ['name', 'description', 'No_of_notes']
+class EditNoteTypeForm(NoteTypeForm):
+    class Meta(NoteTypeForm.Meta):
+        model = Note_Type
+        exclude = ['No_of_notes']
 
 class DojoMetaDataForm(forms.ModelForm):
     value = forms.CharField(widget=forms.Textarea(attrs={}),
@@ -1220,12 +1216,15 @@ class DeleteEndpointForm(forms.ModelForm):
 
 
 class NoteForm(forms.ModelForm):
+    note_type = forms.ModelChoiceField(label='Note Type',
+                                       queryset=Note_Type.objects.exclude(is_active=False).order_by('name'),
+                                       required=True)
     entry = forms.CharField(max_length=2400, widget=forms.Textarea(attrs={'rows': 4, 'cols': 15}),
                             label='Notes:')
 
     class Meta:
         model = Notes
-        fields = ['entry']
+        fields = ['note_type','entry']
 
 
 class CloseFindingForm(forms.ModelForm):
