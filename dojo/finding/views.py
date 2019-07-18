@@ -233,7 +233,7 @@ def view_finding(request, fid):
     notes = finding.notes.all()
 
     if request.method == 'POST':
-        form = NoteForm(request.POST)
+        form = NoteForm(request.POST, finding=finding)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
@@ -245,7 +245,7 @@ def view_finding(request, fid):
             finding.save()
             if jissue is not None:
                 add_comment_task(finding, new_note)
-            form = NoteForm()
+            form = NoteForm(finding=finding)
             url = request.build_absolute_uri(
                 reverse("view_finding", args=(finding.id, )))
             title = "Finding: " + finding.title
@@ -256,7 +256,7 @@ def view_finding(request, fid):
                 'Note saved.',
                 extra_tags='alert-success')
     else:
-        form = NoteForm()
+        form = NoteForm(finding=finding)
 
     try:
         reqres = BurpRawRequestResponse.objects.get(finding=finding)
@@ -294,9 +294,9 @@ def close_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     # in order to close a finding, we need to capture why it was closed
     # we can do this with a Note
+    note_types_set = find_mandatory_notetypes(finding)
     if request.method == 'POST':
-        form = CloseFindingForm(request.POST)
-
+        form = NoteForm(request.POST, finding=finding)
         if form.is_valid():
             now = timezone.now()
             new_note = form.save(commit=False)
@@ -304,24 +304,36 @@ def close_finding(request, fid):
             new_note.date = now
             new_note.save()
             finding.notes.add(new_note)
-            finding.active = False
-            finding.mitigated = now
-            finding.mitigated_by = request.user
-            finding.last_reviewed = finding.mitigated
-            finding.last_reviewed_by = request.user
-            finding.endpoints.clear()
-            finding.save()
-
             messages.add_message(
                 request,
                 messages.SUCCESS,
-                'Finding closed.',
+                'Note Saved.',
                 extra_tags='alert-success')
-            return HttpResponseRedirect(
-                reverse('view_test', args=(finding.test.id, )))
+
+            note_types_set = find_mandatory_notetypes(finding)
+            if len(note_types_set)==0:
+                finding.active = False
+                finding.mitigated = now
+                finding.mitigated_by = request.user
+                finding.last_reviewed = finding.mitigated
+                finding.last_reviewed_by = request.user
+                finding.endpoints.clear()
+                finding.save()
+
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    'Finding closed.',
+                    extra_tags='alert-success')
+                return HttpResponseRedirect(
+                    reverse('view_test', args=(finding.test.id, )))
+
+            else:
+                return HttpResponseRedirect(
+                    reverse('close_finding', args=(finding.id, )))
 
     else:
-        form = CloseFindingForm()
+        form = NoteForm(finding=finding)
 
     product_tab = Product_Tab(finding.test.engagement.product.id, title="Close", tab="findings")
 
@@ -330,7 +342,8 @@ def close_finding(request, fid):
         'product_tab': product_tab,
         'active_tab': 'findings',
         'user': request.user,
-        'form': form
+        'form': form,
+        'note_types_set': note_types_set
     })
 
 
@@ -1519,3 +1532,36 @@ def finding_bulk_update_all(request, pid=None):
         return HttpResponseRedirect(reverse('product_open_findings', args=(pid, )) + '?test__engagement__product=' + pid)
     else:
         return HttpResponseRedirect(reverse('open_findings', args=()))
+
+# def find_available_notetypes(fid):
+#     finding = get_object_or_404(Finding, id=fid)
+#     notes = finding.notes.all()
+#     single_note_types = Note_Type.objects.exclude(No_of_notes = "Multiple") \
+#                                         .exclude(is_active=False)
+#     multiple_note_types = Note_Type.objects.exclude(No_of_notes = "Single") \
+#                                         .exclude(is_active=False)
+#     available_note_types = []
+#     for note_type in multiple_note_types:
+#         available_note_types.append(note_type.id)
+#     for note_type in single_note_types:
+#         for note in notes:
+#             if note_type.id == note.note_type_id:
+#                 break;
+#         else:
+#             available_note_types.append(note_type.id)
+#     queryset = Note_Type.objects.filter(id__in = available_note_types)
+#     return queryset
+
+def find_mandatory_notetypes(finding):
+    notes = finding.notes.all()
+    mandatory_note_types = Note_Type.objects.exclude(is_mandatory=False) \
+                                        .exclude(is_active=False)
+    notes_to_be_added = []
+    for note_type in mandatory_note_types:
+        for note in notes:
+            if note_type.id == note.note_type_id:
+                break;
+        else:
+            notes_to_be_added.append(note_type.id)
+    queryset = Note_Type.objects.filter(id__in = notes_to_be_added)
+    return queryset

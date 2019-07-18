@@ -43,6 +43,7 @@ def edit_note_type(request, ntid):
             nt_form = NoteTypeForm(request.POST, instance=nt)
         if nt_form.is_valid():
             nt = nt_form.save()
+            Handle_other_notetype()
             messages.add_message(
                 request,
                 messages.SUCCESS,
@@ -53,6 +54,7 @@ def edit_note_type(request, ntid):
     if request.method == "POST" and request.POST.get("disable_note_type"):
             nt.is_active=False
             nt.save()
+            Handle_other_notetype()
             messages.add_message(
                 request,
                 messages.SUCCESS,
@@ -63,6 +65,7 @@ def edit_note_type(request, ntid):
     if request.method == "POST" and request.POST.get("re-activate_note_type"):
             nt.is_active=True
             nt.save()
+            Handle_other_notetype()
             messages.add_message(
                 request,
                 messages.SUCCESS,
@@ -85,6 +88,7 @@ def add_note_type(request):
         form = NoteTypeForm(request.POST)
         if form.is_valid():
             note_type = form.save()
+            Handle_other_notetype()
             messages.add_message(request,
                                  messages.SUCCESS,
                                  'Note Type added successfully.',
@@ -92,3 +96,16 @@ def add_note_type(request):
             return HttpResponseRedirect(reverse('note_type'))
     add_breadcrumb(title="Add Note Type", top_level=False, request=request)
     return render(request,'dojo/add_note_type.html' , {'form' : form})
+
+def Handle_other_notetype():
+    mandatory_active_notetypes = Note_Type.objects.exclude(is_mandatory=False) \
+        .exclude(is_active=False)
+    nt = get_object_or_404(Note_Type, pk=1)
+    if nt.is_mandatory == True:
+        if len(mandatory_active_notetypes) > 1:
+            nt.is_mandatory = False
+            nt.save()
+    else:
+        if len(mandatory_active_notetypes) == 0:
+            nt.is_mandatory = True
+            nt.save()

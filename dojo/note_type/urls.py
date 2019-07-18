@@ -1,6 +1,6 @@
 from django.conf.urls import url
 
-from dojo.note_types import views
+from dojo.note_type import views
 
 urlpatterns = [
     url(r'^note_type$',

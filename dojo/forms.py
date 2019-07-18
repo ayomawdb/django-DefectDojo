@@ -14,6 +14,7 @@ from django.utils.dates import MONTHS
 from django.utils.safestring import mark_safe
 from django.utils import timezone
 from tagging.models import Tag
+from django.shortcuts import get_object_or_404
 from dojo.models import Finding, Product_Type, Product, Note_Type, ScanSettings, VA, \
     Check_List, User, Engagement, Test, Test_Type, Notes, Risk_Acceptance, \
     Development_Environment, Dojo_User, Scan, Endpoint, Stub_Finding, Finding_Template, Report, FindingImage, \
@@ -1216,11 +1217,33 @@ class DeleteEndpointForm(forms.ModelForm):
 
 
 class NoteForm(forms.ModelForm):
-    note_type = forms.ModelChoiceField(label='Note Type',
-                                       queryset=Note_Type.objects.exclude(is_active=False).order_by('name'),
-                                       required=True)
+    #note_type = forms.ModelChoiceField(label='Note Type')
     entry = forms.CharField(max_length=2400, widget=forms.Textarea(attrs={'rows': 4, 'cols': 15}),
                             label='Notes:')
+
+    def __init__(self, *args, **kwargs):
+        if 'finding' in kwargs:
+            finding = kwargs.pop('finding')
+            notes = finding.notes.all()
+        if 'test' in kwargs:
+            test = kwargs.pop('test')
+            notes = test.notes.all()            
+        single_note_types = Note_Type.objects.exclude(No_of_notes = "Multiple") \
+                                            .exclude(is_active=False)
+        multiple_note_types = Note_Type.objects.exclude(No_of_notes = "Single") \
+                                            .exclude(is_active=False)
+        available_note_types = []
+        for note_type in multiple_note_types:
+            available_note_types.append(note_type.id)
+        for note_type in single_note_types:
+            for note in notes:
+                if note_type.id == note.note_type_id:
+                    break;
+            else:
+                available_note_types.append(note_type.id)
+        queryset = Note_Type.objects.filter(id__in = available_note_types)
+        super(NoteForm, self).__init__(*args, **kwargs)
+        self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
 
     class Meta:
         model = Notes
@@ -1228,6 +1251,7 @@ class NoteForm(forms.ModelForm):
 
 
 class CloseFindingForm(forms.ModelForm):
+    note_type = forms.ModelChoiceField(Note_Type.objects.exclude(is_active=False), label = 'Note Type')
     entry = forms.CharField(
         required=True, max_length=2400,
         widget=forms.Textarea, label='Notes:',
@@ -1237,7 +1261,7 @@ class CloseFindingForm(forms.ModelForm):
 
     class Meta:
         model = Notes
-        fields = ['entry']
+        fields = ['note_type','entry']
 
 
 class DefectFindingForm(forms.ModelForm):

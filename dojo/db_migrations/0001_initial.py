@@ -1356,4 +1356,7 @@ class Migration(migrations.Migration):
             name='benchmark_product',
             unique_together=set([('product', 'control')]),
         ),
+        #migrations.RunSQL(
+        #"INSERT INTO note_type (name,description,is_mandatory,is_active,No_of_notes) VALUES ('Other','hdvdhvdhjvadjh',True,True,'Single');"
+        #),
     ]
