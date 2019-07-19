@@ -278,15 +278,18 @@ class Contact(models.Model):
     updated = models.DateTimeField(editable=False)
 
 class Note_Type(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
     No_of_notes = models.CharField(max_length=8, choices=(('Single','Single'),('Multiple','Multiple')), null=False, blank=False)
     is_active = models.BooleanField(default=True, null=False)
     is_mandatory = models.BooleanField(default=True, null=False)
+    Related_to = models.CharField(max_length=20, choices=(('Finding','Finding'),('Test','Test'),('Benchmark Product','Benchmark Product')), null=False, blank=False)
 
     def __unicode__(self):
         return self.name
 
+    class Meta:
+        unique_together = ('name','Related_to')
 
 class Product_Type(models.Model):
     name = models.CharField(max_length=255, unique=True)

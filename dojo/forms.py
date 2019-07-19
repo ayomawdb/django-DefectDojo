@@ -213,12 +213,19 @@ class NoteTypeForm(forms.ModelForm):
                                   required=True)
     class Meta:
         model = Note_Type
-        fields = ['name', 'description', 'No_of_notes','is_mandatory']
+        fields = ['name', 'description', 'No_of_notes','Related_to','is_mandatory']
 
 class EditNoteTypeForm(NoteTypeForm):
+
+    def __init__(self, *args, **kwargs):
+        No_of_notes = kwargs.pop('No_of_notes')
+        super(EditNoteTypeForm, self).__init__(*args, **kwargs)
+        if No_of_notes =='Multiple':
+            self.fields['No_of_notes'].widget = forms.HiddenInput()
+
     class Meta(NoteTypeForm.Meta):
         model = Note_Type
-        exclude = ['No_of_notes']
+        exclude = ['Related_to']
 
 class DojoMetaDataForm(forms.ModelForm):
     value = forms.CharField(widget=forms.Textarea(attrs={}),
@@ -1217,7 +1224,6 @@ class DeleteEndpointForm(forms.ModelForm):
 
 
 class NoteForm(forms.ModelForm):
-    #note_type = forms.ModelChoiceField(label='Note Type')
     entry = forms.CharField(max_length=2400, widget=forms.Textarea(attrs={'rows': 4, 'cols': 15}),
                             label='Notes:')
 
@@ -1225,13 +1231,14 @@ class NoteForm(forms.ModelForm):
         if 'finding' in kwargs:
             finding = kwargs.pop('finding')
             notes = finding.notes.all()
+            single_note_types = Note_Type.objects.filter(No_of_notes='Single', is_active=True, Related_to='Finding')
+            multiple_note_types = Note_Type.objects.filter(No_of_notes='Multiple', is_active=True, Related_to='Finding')
         if 'test' in kwargs:
             test = kwargs.pop('test')
-            notes = test.notes.all()            
-        single_note_types = Note_Type.objects.exclude(No_of_notes = "Multiple") \
-                                            .exclude(is_active=False)
-        multiple_note_types = Note_Type.objects.exclude(No_of_notes = "Single") \
-                                            .exclude(is_active=False)
+            notes = test.notes.all()
+            single_note_types = Note_Type.objects.filter(No_of_notes='Single', is_active=True, Related_to='Test')
+            multiple_note_types = Note_Type.objects.filter(No_of_notes='Multiple', is_active=True, Related_to='Test')
+
         available_note_types = []
         for note_type in multiple_note_types:
             available_note_types.append(note_type.id)
@@ -1242,6 +1249,7 @@ class NoteForm(forms.ModelForm):
             else:
                 available_note_types.append(note_type.id)
         queryset = Note_Type.objects.filter(id__in = available_note_types)
+
         super(NoteForm, self).__init__(*args, **kwargs)
         self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
 
@@ -1251,7 +1259,7 @@ class NoteForm(forms.ModelForm):
 
 
 class CloseFindingForm(forms.ModelForm):
-    note_type = forms.ModelChoiceField(Note_Type.objects.exclude(is_active=False), label = 'Note Type')
+    note_type = forms.ModelChoiceField(Note_Type.objects.filter(is_active=True), label = 'Note Type')
     entry = forms.CharField(
         required=True, max_length=2400,
         widget=forms.Textarea, label='Notes:',

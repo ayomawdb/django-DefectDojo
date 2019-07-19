@@ -493,11 +493,12 @@ class Migration(migrations.Migration):
             name='Note_Type',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True)),
+                ('name', models.CharField(max_length=100)),
                 ('description', models.CharField(max_length=200)),
-                ('No_of_notes', multiselectfield.db.fields.MultiSelectField(blank=False,choices=[(b'Single',b'Single'),(b'Multiple',b'Multiple')],max_length=8)),
+                ('no_of_notes', multiselectfield.db.fields.MultiSelectField(blank=False,choices=[(b'Single',b'Single'),(b'Multiple',b'Multiple')],max_length=8)),
                 ('is_active', models.BooleanField(default=True)),
                 ('is_mandatory', models.BooleanField(default=True)),
+                ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20,blank=False,choices=[(b'Finding',b'Finding'),(b'Test',b'Test'),(b'Benchmark Product',b'Benchmark Product')])),
             ],
         ),
         migrations.CreateModel(
@@ -1356,7 +1357,8 @@ class Migration(migrations.Migration):
             name='benchmark_product',
             unique_together=set([('product', 'control')]),
         ),
-        #migrations.RunSQL(
-        #"INSERT INTO note_type (name,description,is_mandatory,is_active,No_of_notes) VALUES ('Other','hdvdhvdhjvadjh',True,True,'Single');"
-        #),
+        migrations.AlterUniqueTogether(
+            name='note_type',
+            unique_together=set([('name', 'related_to')]),
+        ),
     ]

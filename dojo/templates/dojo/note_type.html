@@ -47,6 +47,7 @@
                             <th> Single/Multiple</th>
                             <th> Mandatory/Optional</th>
                             <th> Active/Disabled</th>
+                            <th> Related_to</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -69,18 +70,21 @@
                                 <a>Disabled</a>
                                 {% endif %}
                               </td>
+                              <td><a>{{ nt.Related_to }}</a></td>
 
                               {% if user.is_superuser %}
-                                    <td>
-                                        <div class="centered">
-                                            <div class="btn-group" role="group">
-                                                <a class="btn btn-sm btn-warning"
-                                                   href="{% url 'edit_note_type' nt.id %}">
-                                                    <i class="fa fa-pencil"></i> Edit Note Type
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </td>
+                                {% if nt.name != "Other" %}
+                                      <td>
+                                          <div class="centered">
+                                              <div class="btn-group" role="group">
+                                                  <a class="btn btn-sm btn-warning"
+                                                     href="{% url 'edit_note_type' nt.id %}">
+                                                      <i class="fa fa-pencil"></i> Edit Note Type
+                                                  </a>
+                                              </div>
+                                          </div>
+                                      </td>
+                                  {% endif %}
                                 {% endif %}
 
                             </tr>

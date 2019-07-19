@@ -1554,8 +1554,7 @@ def finding_bulk_update_all(request, pid=None):
 
 def find_mandatory_notetypes(finding):
     notes = finding.notes.all()
-    mandatory_note_types = Note_Type.objects.exclude(is_mandatory=False) \
-                                        .exclude(is_active=False)
+    mandatory_note_types = Note_Type.objects.filter(Related_to ="Finding", is_mandatory=True , is_active=True)
     notes_to_be_added = []
     for note_type in mandatory_note_types:
         for note in notes:

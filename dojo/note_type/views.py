@@ -32,15 +32,10 @@ def note_type(request):
 @user_passes_test(lambda u: u.is_superuser)
 def edit_note_type(request, ntid):
     nt = get_object_or_404(Note_Type, pk=ntid)
-    if nt.No_of_notes == 'Multiple':
-        nt_form = EditNoteTypeForm(instance=nt)
-    else:
-        nt_form = NoteTypeForm(instance=nt)
+    No_of_notes = nt.No_of_notes
+    nt_form = EditNoteTypeForm(instance=nt, No_of_notes = No_of_notes)
     if request.method == "POST" and request.POST.get('edit_note_type'):
-        if nt.No_of_notes == 'Multiple':
-            nt_form = EditNoteTypeForm(request.POST, instance=nt)
-        else:
-            nt_form = NoteTypeForm(request.POST, instance=nt)
+        nt_form = EditNoteTypeForm(request.POST, instance=nt, No_of_notes = No_of_notes)
         if nt_form.is_valid():
             nt = nt_form.save()
             Handle_other_notetype()
@@ -98,8 +93,7 @@ def add_note_type(request):
     return render(request,'dojo/add_note_type.html' , {'form' : form})
 
 def Handle_other_notetype():
-    mandatory_active_notetypes = Note_Type.objects.exclude(is_mandatory=False) \
-        .exclude(is_active=False)
+    mandatory_active_notetypes = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to='Finding')
     nt = get_object_or_404(Note_Type, pk=1)
     if nt.is_mandatory == True:
         if len(mandatory_active_notetypes) > 1:
