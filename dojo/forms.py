@@ -1227,6 +1227,15 @@ class NoteForm(forms.ModelForm):
     entry = forms.CharField(max_length=2400, widget=forms.Textarea(attrs={'rows': 4, 'cols': 15}),
                             label='Notes:')
 
+    class Meta:
+        model = Notes
+        fields = ['entry']
+
+
+class New_NoteForm(forms.ModelForm):
+    entry = forms.CharField(max_length=2400, widget=forms.Textarea(attrs={'rows': 4, 'cols': 15}),
+                            label='Notes:')
+
     def __init__(self, *args, **kwargs):
         if 'finding' in kwargs:
             finding = kwargs.pop('finding')
@@ -1250,22 +1259,8 @@ class NoteForm(forms.ModelForm):
                 available_note_types.append(note_type.id)
         queryset = Note_Type.objects.filter(id__in = available_note_types)
 
-        super(NoteForm, self).__init__(*args, **kwargs)
+        super(New_NoteForm, self).__init__(*args, **kwargs)
         self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
-
-    class Meta:
-        model = Notes
-        fields = ['note_type','entry']
-
-
-class CloseFindingForm(forms.ModelForm):
-    note_type = forms.ModelChoiceField(Note_Type.objects.filter(is_active=True), label = 'Note Type')
-    entry = forms.CharField(
-        required=True, max_length=2400,
-        widget=forms.Textarea, label='Notes:',
-        error_messages={'required': ('The reason for closing a finding is '
-                                     'required, please use the text area '
-                                     'below to provide documentation.')})
 
     class Meta:
         model = Notes

@@ -283,7 +283,7 @@ class Note_Type(models.Model):
     No_of_notes = models.CharField(max_length=8, choices=(('Single','Single'),('Multiple','Multiple')), null=False, blank=False)
     is_active = models.BooleanField(default=True, null=False)
     is_mandatory = models.BooleanField(default=True, null=False)
-    Related_to = models.CharField(max_length=20, choices=(('Finding','Finding'),('Test','Test'),('Benchmark Product','Benchmark Product')), null=False, blank=False)
+    Related_to = models.CharField(max_length=20, choices=(('Finding','Finding'),('Test','Test')), null=False, blank=False)
 
     def __unicode__(self):
         return self.name
@@ -949,7 +949,7 @@ class Endpoint(models.Model):
 
 class Notes(models.Model):
     note_type = models.ForeignKey(Note_Type, related_name='note_type',
-                                  null=False, blank=False)
+                                  null=True, blank=True)
     entry = models.TextField()
     date = models.DateTimeField(null=False, editable=False,
                                 default=get_current_datetime)

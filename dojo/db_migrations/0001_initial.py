@@ -498,7 +498,7 @@ class Migration(migrations.Migration):
                 ('no_of_notes', multiselectfield.db.fields.MultiSelectField(blank=False,choices=[(b'Single',b'Single'),(b'Multiple',b'Multiple')],max_length=8)),
                 ('is_active', models.BooleanField(default=True)),
                 ('is_mandatory', models.BooleanField(default=True)),
-                ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20,blank=False,choices=[(b'Finding',b'Finding'),(b'Test',b'Test'),(b'Benchmark Product',b'Benchmark Product')])),
+                ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20,blank=False,choices=[(b'Finding',b'Finding'),(b'Test',b'Test')])),
             ],
         ),
         migrations.CreateModel(
@@ -1019,7 +1019,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='notes',
             name='note_type',
-            field=models.ForeignKey(blank=False, null=False, related_name='note_type', on_delete=django.db.models.deletion.CASCADE, to='dojo.Note_Type'),
+            field=models.ForeignKey(blank=True, null=True, related_name='note_type', on_delete=django.db.models.deletion.CASCADE, to='dojo.Note_Type'),
         ),
         migrations.AddField(
             model_name='languages',

@@ -94,7 +94,7 @@ def add_note_type(request):
 
 def Handle_other_notetype():
     mandatory_active_notetypes = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to='Finding')
-    nt = get_object_or_404(Note_Type, pk=1)
+    nt = get_object_or_404(Note_Type, name = 'Other', Related_to = 'Finding')
     if nt.is_mandatory == True:
         if len(mandatory_active_notetypes) > 1:
             nt.is_mandatory = False

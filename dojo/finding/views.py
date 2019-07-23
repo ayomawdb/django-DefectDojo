@@ -25,7 +25,7 @@ from itertools import chain
 from dojo.filters import OpenFindingFilter, \
     OpenFingingSuperFilter, AcceptedFingingSuperFilter, \
     ClosedFingingSuperFilter, TemplateFindingFilter
-from dojo.forms import NoteForm, CloseFindingForm, FindingForm, PromoteFindingForm, FindingTemplateForm, \
+from dojo.forms import NoteForm,New_NoteForm, FindingForm, PromoteFindingForm, FindingTemplateForm, \
     DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
     DefectFindingForm, StubFindingForm, DeleteFindingForm, DeleteStubFindingForm, ApplyFindingTemplateForm, \
     FindingFormID, FindingBulkUpdateForm, MergeFindings
@@ -233,7 +233,7 @@ def view_finding(request, fid):
     notes = finding.notes.all()
 
     if request.method == 'POST':
-        form = NoteForm(request.POST, finding=finding)
+        form = New_NoteForm(request.POST, finding=finding)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
@@ -245,7 +245,7 @@ def view_finding(request, fid):
             finding.save()
             if jissue is not None:
                 add_comment_task(finding, new_note)
-            form = NoteForm(finding=finding)
+            form = New_NoteForm(finding=finding)
             url = request.build_absolute_uri(
                 reverse("view_finding", args=(finding.id, )))
             title = "Finding: " + finding.title
@@ -256,7 +256,7 @@ def view_finding(request, fid):
                 'Note saved.',
                 extra_tags='alert-success')
     else:
-        form = NoteForm(finding=finding)
+        form = New_NoteForm(finding=finding)
 
     try:
         reqres = BurpRawRequestResponse.objects.get(finding=finding)
@@ -295,8 +295,27 @@ def close_finding(request, fid):
     # in order to close a finding, we need to capture why it was closed
     # we can do this with a Note
     note_types_set = find_mandatory_notetypes(finding)
-    if request.method == 'POST':
-        form = NoteForm(request.POST, finding=finding)
+    form = New_NoteForm(finding = finding)
+    if request.method == 'POST' and request.POST.get('add_note'):
+        form = New_NoteForm(request.POST, finding = finding)
+        if form.is_valid():
+            now = timezone.now()
+            new_note = form.save(commit=False)
+            new_note.author = request.user
+            new_note.date = now
+            new_note.save()
+            finding.notes.add(new_note)
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                'Note Saved.',
+                extra_tags='alert-success')
+            note_types_set = find_mandatory_notetypes(finding)
+        return HttpResponseRedirect(
+            reverse('close_finding', args=(finding.id, )))
+
+    elif request.method == 'POST' and request.POST.get('close_finding'):
+        form = New_NoteForm(request.POST, finding = finding)
         if form.is_valid():
             now = timezone.now()
             new_note = form.save(commit=False)
@@ -310,30 +329,26 @@ def close_finding(request, fid):
                 'Note Saved.',
                 extra_tags='alert-success')
 
-            note_types_set = find_mandatory_notetypes(finding)
-            if len(note_types_set)==0:
-                finding.active = False
-                finding.mitigated = now
-                finding.mitigated_by = request.user
-                finding.last_reviewed = finding.mitigated
-                finding.last_reviewed_by = request.user
-                finding.endpoints.clear()
-                finding.save()
+            finding.active = False
+            now = timezone.now()
+            finding.mitigated = now
+            finding.mitigated_by = request.user
+            finding.last_reviewed = finding.mitigated
+            finding.last_reviewed_by = request.user
+            finding.endpoints.clear()
+            finding.save()
 
-                messages.add_message(
-                    request,
-                    messages.SUCCESS,
-                    'Finding closed.',
-                    extra_tags='alert-success')
-                return HttpResponseRedirect(
-                    reverse('view_test', args=(finding.test.id, )))
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                'Finding closed.',
+                extra_tags='alert-success')
 
-            else:
-                return HttpResponseRedirect(
-                    reverse('close_finding', args=(finding.id, )))
+            return HttpResponseRedirect(
+                reverse('view_test', args=(finding.test.id, )))
 
     else:
-        form = NoteForm(finding=finding)
+        form = New_NoteForm(finding = finding)
 
     product_tab = Product_Tab(finding.test.engagement.product.id, title="Close", tab="findings")
 
@@ -343,13 +358,14 @@ def close_finding(request, fid):
         'active_tab': 'findings',
         'user': request.user,
         'form': form,
-        'note_types_set': note_types_set
+        'note_types_set':note_types_set,
     })
 
 
 @user_passes_test(lambda u: u.is_staff)
 def defect_finding_review(request, fid):
     finding = get_object_or_404(Finding, id=fid)
+    note_type = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
     # in order to close a finding, we need to capture why it was closed
     # we can do this with a Note
     if request.method == 'POST':
@@ -360,6 +376,7 @@ def defect_finding_review(request, fid):
             new_note = form.save(commit=False)
             new_note.author = request.user
             new_note.date = now
+            new_note.note_type_id = note_type.id
             new_note.save()
             finding.notes.add(new_note)
             finding.under_defect_review = False
@@ -637,6 +654,7 @@ def touch_finding(request, fid):
 @user_passes_test(lambda u: u.is_staff)
 def request_finding_review(request, fid):
     finding = get_object_or_404(Finding, id=fid)
+    note_type = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
     user = get_object_or_404(Dojo_User, id=request.user.id)
     # in order to review a finding, we need to capture why a review is needed
     # we can do this with a Note
@@ -650,6 +668,7 @@ def request_finding_review(request, fid):
             new_note.entry = "Review Request: " + form.cleaned_data['entry']
             new_note.author = request.user
             new_note.date = now
+            new_note.note_type_id = note_type.id
             new_note.save()
             finding.notes.add(new_note)
             finding.active = False
@@ -694,6 +713,7 @@ def request_finding_review(request, fid):
 def clear_finding_review(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     user = get_object_or_404(Dojo_User, id=request.user.id)
+    note_type = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
     # in order to clear a review for a finding, we need to capture why and how it was reviewed
     # we can do this with a Note
 
@@ -711,6 +731,7 @@ def clear_finding_review(request, fid):
             new_note.entry = "Review Cleared: " + form.cleaned_data['entry']
             new_note.author = request.user
             new_note.date = now
+            new_note.note_type_id = note_type.id
             new_note.save()
 
             finding = form.save(commit=False)
@@ -1047,6 +1068,7 @@ def templates(request):
 
 
 def apply_cwe_mitigation(apply_to_findings, template, update=True):
+    note_type = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
     count = 0
     if apply_to_findings and template.template_match and template.cwe is not None:
         # Update active, verified findings with the CWE template
@@ -1081,6 +1103,7 @@ def apply_cwe_mitigation(apply_to_findings, template, update=True):
                     new_note = Notes()
                     new_note.entry = 'CWE remediation text applied to finding for CWE: %s using template: %s.' % (template.cwe, template.title)
                     new_note.author, created = User.objects.get_or_create(username='System')
+                    new_note.note_type_id = note_type.id
                     new_note.save()
                     finding.notes.add(new_note)
                     finding.save()
@@ -1325,6 +1348,7 @@ def download_finding_pic(request, token):
 @user_passes_test(lambda u: u.is_staff)
 def merge_finding_product(request, pid):
     product = get_object_or_404(Product, pk=pid)
+    note_type = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
     finding_to_update = request.GET.getlist('finding_to_update')
     findings = None
 
@@ -1386,7 +1410,7 @@ def merge_finding_product(request, pid):
                         # Add merge finding information to the note if set to inactive
                         if form.cleaned_data['finding_action'] == "inactive":
                             single_finding_notes_entry = "Finding has been set to inactive and merged with the finding: {}.".format(finding_to_merge_into.title)
-                            note = Notes(entry=single_finding_notes_entry, author=request.user)
+                            note = Notes(entry=single_finding_notes_entry, author=request.user, note_type_id = note_type.id)
                             note.save()
                             finding.notes.add(note)
 
@@ -1437,7 +1461,7 @@ def merge_finding_product(request, pid):
                         findings_to_merge.delete()
 
                     notes_entry = "Finding consists of merged findings from the following findings: {} which have been {}.".format(notes_entry[:-1], finding_action)
-                    note = Notes(entry=notes_entry, author=request.user)
+                    note = Notes(entry=notes_entry, author=request.user, note_type_id=note_type.id)
                     note.save()
                     finding_to_merge_into.notes.add(note)
 
@@ -1564,3 +1588,72 @@ def find_mandatory_notetypes(finding):
             notes_to_be_added.append(note_type.id)
     queryset = Note_Type.objects.filter(id__in = notes_to_be_added)
     return queryset
+
+
+
+# @user_passes_test(lambda u: u.is_staff)
+# def close_finding(request, fid):
+#     finding = get_object_or_404(Finding, id=fid)
+#     note_types_set = find_mandatory_notetypes(finding)
+#
+#     if len(note_types_set) > 0:
+#         form = NoteForm(finding = finding)
+#         if request.method == 'POST':
+#             form = NoteForm(request.POST, finding = finding)
+#             if form.is_valid():
+#                 now = timezone.now()
+#                 new_note = form.save(commit=False)
+#                 new_note.author = request.user
+#                 new_note.date = now
+#                 new_note.save()
+#                 finding.notes.add(new_note)
+#                 messages.add_message(
+#                     request,
+#                     messages.SUCCESS,
+#                     'Note Saved.',
+#                     extra_tags='alert-success')
+#
+#             return HttpResponseRedirect(
+#                 reverse('close_finding', args=(finding.id, )))
+#
+#         product_tab = Product_Tab(finding.test.engagement.product.id, title="Close", tab="findings")
+#
+#         return render(request, 'dojo/close_finding.html', {
+#             'finding': finding,
+#             'product_tab': product_tab,
+#             'active_tab': 'findings',
+#             'user': request.user,
+#             'form': form,
+#         })
+#
+#     if len(note_types_set)==0:
+#         finding.active = False
+#         now = timezone.now()
+#         finding.mitigated = now
+#         finding.mitigated_by = request.user
+#         finding.last_reviewed = finding.mitigated
+#         finding.last_reviewed_by = request.user
+#         finding.endpoints.clear()
+#         finding.save()
+#
+#         messages.add_message(
+#             request,
+#             messages.SUCCESS,
+#             'Finding closed.',
+#             extra_tags='alert-success')
+#
+#         return HttpResponseRedirect(
+#             reverse('view_test', args=(finding.test.id, )))
+#
+#     # else:
+#     #     form = NoteForm(finding = finding)
+#
+#         product_tab = Product_Tab(finding.test.engagement.product.id, title="Close", tab="findings")
+#
+#         return render(request, 'dojo/view_test.html', {[]
+#             'finding': finding,
+#             'product_tab': product_tab,
+#             'active_tab': 'findings',
+#             'user': request.user,
+#             'form': form,
+#         })

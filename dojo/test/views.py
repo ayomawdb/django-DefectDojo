@@ -17,10 +17,10 @@ from django.contrib.admin.utils import NestedObjects
 from django.db import DEFAULT_DB_ALIAS
 
 from dojo.filters import TemplateFindingFilter
-from dojo.forms import NoteForm, TestForm, FindingForm, \
+from dojo.forms import NoteForm,New_NoteForm, TestForm, FindingForm, \
     DeleteTestForm, AddFindingForm, \
     ImportScanForm, ReImportScanForm, FindingBulkUpdateForm, JIRAFindingForm
-from dojo.models import Product, Finding, Test, Notes, BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_Mapping, Dojo_User, JIRA_Issue
+from dojo.models import Product, Finding, Test, Notes, Note_Type, BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_Mapping, Dojo_User, JIRA_Issue
 from dojo.tools.factory import import_parser_factory
 from dojo.utils import get_page_items, add_breadcrumb, get_cal_event, message, process_notifications, get_system_setting, create_notification, Product_Tab, calculate_grade, log_jira_alert
 from dojo.tasks import add_issue_task, update_issue_task
@@ -43,14 +43,14 @@ def view_test(request, tid):
     creds = Cred_Mapping.objects.filter(engagement=test.engagement).select_related('cred_id').order_by('cred_id')
 
     if request.method == 'POST' and request.user.is_staff:
-        form = NoteForm(request.POST,test=test)
+        form = New_NoteForm(request.POST,test=test)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
             new_note.date = timezone.now()
             new_note.save()
             test.notes.add(new_note)
-            form = NoteForm(test=test)
+            form = New_NoteForm(test=test)
             url = request.build_absolute_uri(reverse("view_test", args=(test.id,)))
             title = "Test: %s on %s" % (test.test_type.name, test.engagement.product.name)
             process_notifications(request, new_note, url, title)
@@ -59,7 +59,7 @@ def view_test(request, tid):
                                  'Note added successfully.',
                                  extra_tags='alert-success')
     else:
-        form = NoteForm(test=test)
+        form = New_NoteForm(test=test)
 
     fpage = get_page_items(request, findings, 25)
     sfpage = get_page_items(request, stub_findings, 25)
@@ -473,6 +473,7 @@ def re_import_scan_results(request, tid):
                          "mitigated.  The process attempts to identify the differences, however manual verification " \
                          "is highly recommended."
     t = get_object_or_404(Test, id=tid)
+    note_type = get_object_or_404(Note_Type, name ='Other', Related_to = 'Finding')
     scan_type = t.test_type.name
     engagement = t.engagement
     form = ReImportScanForm()
@@ -491,7 +492,7 @@ def re_import_scan_results(request, tid):
             ts = ", ".join(tags)
             t.tags = ts
             try:
-                parser = import_parser_factory(file, t)
+                parser = import_parser_factory(file, t, active, verified)
             except ValueError:
                 raise Http404()
 
@@ -536,7 +537,7 @@ def re_import_scan_results(request, tid):
                             find.verified = verified
                             find.save()
                             note = Notes(entry="Re-activated by %s re-upload." % scan_type,
-                                         author=request.user)
+                                         author=request.user,note_type_id = note_type.id)
                             note.save()
                             find.notes.add(note)
                             reactivated_count += 1
@@ -593,7 +594,7 @@ def re_import_scan_results(request, tid):
                     finding.active = False
                     finding.save()
                     note = Notes(entry="Mitigated by %s re-upload." % scan_type,
-                                 author=request.user)
+                                 author=request.user, note_type_id = note_type.id)
                     note.save()
                     finding.notes.add(note)
                     mitigated_count += 1
