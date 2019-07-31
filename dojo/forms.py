@@ -213,19 +213,33 @@ class NoteTypeForm(forms.ModelForm):
                                   required=True)
     class Meta:
         model = Note_Type
-        fields = ['name', 'description', 'No_of_notes','Related_to','is_mandatory']
+        fields = ['name', 'description','Related_to','is_single','is_mandatory']
 
 class EditNoteTypeForm(NoteTypeForm):
 
     def __init__(self, *args, **kwargs):
-        No_of_notes = kwargs.pop('No_of_notes')
+        is_single = kwargs.pop('is_single')
         super(EditNoteTypeForm, self).__init__(*args, **kwargs)
-        if No_of_notes =='Multiple':
-            self.fields['No_of_notes'].widget = forms.HiddenInput()
+        if is_single == False:
+            self.fields['is_single'].widget = forms.HiddenInput()
 
     class Meta(NoteTypeForm.Meta):
         model = Note_Type
         exclude = ['Related_to']
+
+class DisableOrEnableNoteTypeForm(NoteTypeForm):
+    def __init__(self, *args, **kwargs):
+        super(DisableOrEnableNoteTypeForm, self).__init__(*args, **kwargs)
+        self.fields['name'].widget.attrs['readonly'] = True
+        self.fields['description'].widget.attrs['readonly'] = True
+        self.fields['Related_to'].widget.attrs['readonly'] = True
+        self.fields['is_single'].widget.attrs['readonly'] = True
+        self.fields['is_mandatory'].widget.attrs['readonly'] = True
+        self.fields['is_active'].widget.attrs['readonly'] = True
+
+    class Meta:
+        model = Note_Type
+        fields = '__all__'
 
 class DojoMetaDataForm(forms.ModelForm):
     value = forms.CharField(widget=forms.Textarea(attrs={}),
@@ -1232,40 +1246,43 @@ class NoteForm(forms.ModelForm):
         fields = ['entry']
 
 
-class New_NoteForm(forms.ModelForm):
-    entry = forms.CharField(max_length=2400, widget=forms.Textarea(attrs={'rows': 4, 'cols': 15}),
-                            label='Notes:')
+class NoteType_NoteForm(NoteForm):
 
     def __init__(self, *args, **kwargs):
-        if 'finding' in kwargs:
-            finding = kwargs.pop('finding')
-            notes = finding.notes.all()
-            single_note_types = Note_Type.objects.filter(No_of_notes='Single', is_active=True, Related_to='Finding')
-            multiple_note_types = Note_Type.objects.filter(No_of_notes='Multiple', is_active=True, Related_to='Finding')
-        if 'test' in kwargs:
-            test = kwargs.pop('test')
-            notes = test.notes.all()
-            single_note_types = Note_Type.objects.filter(No_of_notes='Single', is_active=True, Related_to='Test')
-            multiple_note_types = Note_Type.objects.filter(No_of_notes='Multiple', is_active=True, Related_to='Test')
+        if 'finding_note_types' in kwargs:
+            queryset = kwargs.pop('finding_note_types')
 
-        available_note_types = []
-        for note_type in multiple_note_types:
-            available_note_types.append(note_type.id)
-        for note_type in single_note_types:
-            for note in notes:
-                if note_type.id == note.note_type_id:
-                    break;
-            else:
-                available_note_types.append(note_type.id)
-        queryset = Note_Type.objects.filter(id__in = available_note_types)
+        if 'test_note_types' in kwargs:
+            queryset = kwargs.pop('test_note_types')
 
-        super(New_NoteForm, self).__init__(*args, **kwargs)
+        super(NoteType_NoteForm, self).__init__(*args, **kwargs)
         self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
+
+    class Meta():
+        model = Notes
+        fields = ['note_type', 'entry']
+
+class CloseFindingForm(forms.ModelForm):
+    entry = forms.CharField(
+        required=True, max_length=2400,
+        widget=forms.Textarea, label='Notes:',
+        error_messages={'required': ('The reason for closing a finding is '
+                                     'required, please use the text area '
+                                     'below to provide documentation.')})
+
+    def __init__(self, *args, **kwargs):
+        queryset = kwargs.pop('note_types')
+        super(CloseFindingForm, self).__init__(*args, **kwargs)
+        if len(queryset)==0:
+            self.fields['note_type'].widget = forms.HiddenInput()
+            other = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
+            self.fields['note_type'].initial = other
+        else:
+            self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
 
     class Meta:
         model = Notes
         fields = ['note_type','entry']
-
 
 class DefectFindingForm(forms.ModelForm):
     CLOSE_CHOICES = (("Close Finding", "Close Finding"), ("Not Fixed", "Not Fixed"))

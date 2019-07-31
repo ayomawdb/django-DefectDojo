@@ -17,7 +17,7 @@ from django.contrib.admin.utils import NestedObjects
 from django.db import DEFAULT_DB_ALIAS
 
 from dojo.filters import TemplateFindingFilter
-from dojo.forms import NoteForm,New_NoteForm, TestForm, FindingForm, \
+from dojo.forms import NoteForm,NoteType_NoteForm, TestForm, FindingForm, \
     DeleteTestForm, AddFindingForm, \
     ImportScanForm, ReImportScanForm, FindingBulkUpdateForm, JIRAFindingForm
 from dojo.models import Product, Finding, Test, Notes, Note_Type, BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_Mapping, Dojo_User, JIRA_Issue
@@ -42,15 +42,16 @@ def view_test(request, tid):
     cred_test = Cred_Mapping.objects.filter(test=test).select_related('cred_id').order_by('cred_id')
     creds = Cred_Mapping.objects.filter(engagement=test.engagement).select_related('cred_id').order_by('cred_id')
 
+    note_types = find_available_notetypes(notes)
     if request.method == 'POST' and request.user.is_staff:
-        form = New_NoteForm(request.POST,test=test)
+        form = NoteType_NoteForm(request.POST,test_note_types=note_types)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
             new_note.date = timezone.now()
             new_note.save()
             test.notes.add(new_note)
-            form = New_NoteForm(test=test)
+            form = NoteType_NoteForm(test_note_types=note_types)
             url = request.build_absolute_uri(reverse("view_test", args=(test.id,)))
             title = "Test: %s on %s" % (test.test_type.name, test.engagement.product.name)
             process_notifications(request, new_note, url, title)
@@ -58,8 +59,10 @@ def view_test(request, tid):
                                  messages.SUCCESS,
                                  'Note added successfully.',
                                  extra_tags='alert-success')
+            return HttpResponseRedirect(
+                reverse('view_test', args=(test.id, )))
     else:
-        form = New_NoteForm(test=test)
+        form = NoteType_NoteForm(test_note_types=note_types)
 
     fpage = get_page_items(request, findings, 25)
     sfpage = get_page_items(request, stub_findings, 25)
@@ -640,3 +643,18 @@ def re_import_scan_results(request, tid):
                    'eid': engagement.id,
                    'additional_message': additional_message,
                    })
+
+def find_available_notetypes(notes):
+    single_note_types = Note_Type.objects.filter(is_single=True, is_active=True, Related_to='Test').values_list('id', flat=True)
+    multiple_note_types = Note_Type.objects.filter(is_single=False, is_active=True, Related_to='Test').values_list('id', flat=True)
+    available_note_types = []
+    for note_type_id in multiple_note_types:
+        available_note_types.append(note_type_id)
+    for note_type_id in single_note_types:
+        for note in notes:
+            if note_type_id == note.note_type_id:
+                break;
+        else:
+            available_note_types.append(note_type_id)
+    queryset = Note_Type.objects.filter(id__in = available_note_types).order_by('-id')
+    return queryset

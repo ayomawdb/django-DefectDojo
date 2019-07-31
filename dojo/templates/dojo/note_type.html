@@ -55,7 +55,13 @@
                             <tr>
                               <td><a> {{ nt.name }} </a></td>
                               <td><a>{{ nt.description }}</a></td>
-                              <td><a>{{ nt.No_of_notes }}</a></td>
+                              <td>
+                                {% if nt.is_single %}
+                                  <a>Single</a>
+                                {% else %}
+                                  <a>Multiple</a>
+                                {% endif %}
+                              </td>
                               <td>
                                 {% if nt.is_mandatory %}
                                   <a>Mandatory</a>
@@ -84,6 +90,29 @@
                                               </div>
                                           </div>
                                       </td>
+                                      {% if nt.is_active %}
+                                      <td>
+                                          <div class="centered">
+                                              <div class="btn-group" role="group">
+                                                  <a class="btn btn-sm btn-warning"
+                                                     href="{% url 'disable_note_type' nt.id %}">
+                                                      <i class="fa fa-pencil"></i> Disable Note Type
+                                                  </a>
+                                              </div>
+                                          </div>
+                                      </td>
+                                      {% else %}
+                                        <td>
+                                            <div class="centered">
+                                                <div class="btn-group" role="group">
+                                                    <a class="btn btn-sm btn-warning"
+                                                       href="{% url 'enable_note_type' nt.id %}">
+                                                        <i class="fa fa-pencil"></i> Enable Note Type
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                      {% endif %}
                                   {% endif %}
                                 {% endif %}
 

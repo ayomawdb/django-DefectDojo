@@ -1005,7 +1005,7 @@ class NoteTypesFilter(DojoFilter):
         fields=(
             ('name', 'name'),
             ('description', 'description'),
-            ('No_of_notes', 'No_of_notes'),
+            ('is_single', 'is_single'),
             ('is_mandatory', 'is_mandatory'),
         ),
     )
@@ -1013,4 +1013,4 @@ class NoteTypesFilter(DojoFilter):
     class Meta:
         model = Note_Type
         exclude = []
-        include = ('name','No_of_notes','description')
+        include = ('name','is_single','description')

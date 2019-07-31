@@ -6,11 +6,6 @@
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
                 <input aria-label="Edit Note type" class="btn btn-primary" name="edit_note_type" type="submit" value="Save Changes"/>
-                {% if nt.is_active %}
-                <input aria-label="Disable Note type" class="btn btn-danger" name="disable_note_type" type="submit" value="Disable"/>
-                {% else %}
-                <input aria-label="Re-activate Note type" class="btn btn-danger" name="re-activate_note_type" type="submit" value="Re-activate"/>
-                {% endif %}
             </div>
         </div>
     </form>

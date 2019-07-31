@@ -495,7 +495,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100)),
                 ('description', models.CharField(max_length=200)),
-                ('no_of_notes', multiselectfield.db.fields.MultiSelectField(blank=False,choices=[(b'Single',b'Single'),(b'Multiple',b'Multiple')],max_length=8)),
+                ('is_single', models.BooleanField(default=False)),
                 ('is_active', models.BooleanField(default=True)),
                 ('is_mandatory', models.BooleanField(default=True)),
                 ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20,blank=False,choices=[(b'Finding',b'Finding'),(b'Test',b'Test')])),

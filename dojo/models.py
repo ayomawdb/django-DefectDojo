@@ -280,10 +280,10 @@ class Contact(models.Model):
 class Note_Type(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
-    No_of_notes = models.CharField(max_length=8, choices=(('Single','Single'),('Multiple','Multiple')), null=False, blank=False)
+    Related_to = models.CharField(max_length=20, choices=(('Finding','Finding'),('Test','Test')), null=False, blank=False)
+    is_single = models.BooleanField(default=False, null=False)
     is_active = models.BooleanField(default=True, null=False)
     is_mandatory = models.BooleanField(default=True, null=False)
-    Related_to = models.CharField(max_length=20, choices=(('Finding','Finding'),('Test','Test')), null=False, blank=False)
 
     def __unicode__(self):
         return self.name
