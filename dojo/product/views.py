@@ -20,7 +20,7 @@ from dojo.templatetags.display_tags import get_level
 from dojo.filters import ProductFilter, ProductFindingFilter, EngagementFilter
 from dojo.forms import ProductForm, EngForm, DeleteProductForm, DojoMetaDataForm, JIRAPKeyForm, JIRAFindingForm, AdHocFindingForm, \
                        EngagementPresetsForm, DeleteEngagementPresetsForm
-from dojo.models import Product_Type, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, Finding_Template, \
+from dojo.models import Product_Type, Note_Type, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, Finding_Template, \
     Tool_Product_Settings, Cred_Mapping, Test_Type, System_Settings, Languages, App_Analysis, Benchmark_Type, Benchmark_Product_Summary, \
     Endpoint, Engagement_Presets, DojoMeta
 from dojo.utils import get_page_items, add_breadcrumb, get_punchcard_data, get_system_setting, create_notification, Product_Tab
@@ -720,6 +720,7 @@ def edit_meta_data(request, pid):
 def ad_hoc_finding(request, pid):
     prod = Product.objects.get(id=pid)
     test = None
+    closing_disabled = Note_Type.objects.filter(is_mandatory = True, is_active = True, Related_to = "Finding").count()
     try:
         eng = Engagement.objects.get(product=prod, name="Ad Hoc Engagement")
         tests = Test.objects.filter(engagement=eng)
@@ -740,7 +741,7 @@ def ad_hoc_finding(request, pid):
     form_error = False
     enabled = False
     jform = None
-    form = AdHocFindingForm(initial={'date': timezone.now().date()})
+    form = AdHocFindingForm(initial={'date': timezone.now().date()}, closing_disabled=closing_disabled)
     if get_system_setting('enable_jira'):
             if JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
                 enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -748,7 +749,7 @@ def ad_hoc_finding(request, pid):
     else:
         jform = None
     if request.method == 'POST':
-        form = AdHocFindingForm(request.POST)
+        form = AdHocFindingForm(request.POST, closing_disabled=closing_disabled)
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test

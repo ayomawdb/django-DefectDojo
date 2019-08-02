@@ -230,12 +230,12 @@ class EditNoteTypeForm(NoteTypeForm):
 class DisableOrEnableNoteTypeForm(NoteTypeForm):
     def __init__(self, *args, **kwargs):
         super(DisableOrEnableNoteTypeForm, self).__init__(*args, **kwargs)
-        self.fields['name'].widget.attrs['readonly'] = True
-        self.fields['description'].widget.attrs['readonly'] = True
-        self.fields['Related_to'].widget.attrs['readonly'] = True
-        self.fields['is_single'].widget.attrs['readonly'] = True
-        self.fields['is_mandatory'].widget.attrs['readonly'] = True
-        self.fields['is_active'].widget.attrs['readonly'] = True
+        self.fields['name'].disabled = True
+        self.fields['description'].disabled = True
+        self.fields['Related_to'].disabled = True
+        self.fields['is_single'].disabled = True
+        self.fields['is_mandatory'].disabled = True
+        self.fields['is_active'].disabled = True
 
     class Meta:
         model = Note_Type
@@ -789,6 +789,10 @@ class AddFindingForm(forms.ModelForm):
     is_template = forms.BooleanField(label="Create Template?", required=False,
                                      help_text="A new finding template will be created from this finding.")
 
+    def __init__(self, *args, **kwargs):
+        self.closing_disabled = kwargs.pop("closing_disabled")
+        super(AddFindingForm, self).__init__(*args, **kwargs)
+
     def clean(self):
         # self.fields['endpoints'].queryset = Endpoint.objects.all()
         cleaned_data = super(AddFindingForm, self).clean()
@@ -798,6 +802,10 @@ class AddFindingForm(forms.ModelForm):
         if cleaned_data['false_p'] and cleaned_data['verified']:
             raise forms.ValidationError('False positive findings cannot '
                                         'be verified.')
+        if self.closing_disabled != 0:
+            if ((cleaned_data['active']==False or cleaned_data['false_p']) and cleaned_data['duplicate']==False):
+                raise forms.ValidationError('Can not set a finding as inactive or false positive'
+                                            ' without adding mandatory notes.')
         return cleaned_data
 
     class Meta:
@@ -827,6 +835,10 @@ class AdHocFindingForm(forms.ModelForm):
     is_template = forms.BooleanField(label="Create Template?", required=False,
                                      help_text="A new finding template will be created from this finding.")
 
+    def __init__(self, *args, **kwargs):
+        self.closing_disabled = kwargs.pop("closing_disabled")
+        super(AdHocFindingForm, self).__init__(*args, **kwargs)
+
     def clean(self):
         # self.fields['endpoints'].queryset = Endpoint.objects.all()
         cleaned_data = super(AdHocFindingForm, self).clean()
@@ -836,6 +848,10 @@ class AdHocFindingForm(forms.ModelForm):
         if cleaned_data['false_p'] and cleaned_data['verified']:
             raise forms.ValidationError('False positive findings cannot '
                                         'be verified.')
+        if self.closing_disabled != 0:
+            if ((cleaned_data['active']==False or cleaned_data['false_p']) and cleaned_data['duplicate']==False):
+                raise forms.ValidationError('Can not set a finding as inactive or false positive'
+                                            ' without adding mandatory notes.')
         return cleaned_data
 
     class Meta:
@@ -869,7 +885,6 @@ class PromoteFindingForm(forms.ModelForm):
         exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
                    'duplicate', 'out_of_scope', 'images', 'under_review', 'reviewers', 'review_requested_by')
 
-
 class FindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
     date = forms.DateField(required=True,
@@ -895,6 +910,7 @@ class FindingForm(forms.ModelForm):
                                      help_text="A new finding template will be created from this finding.")
 
     def __init__(self, *args, **kwargs):
+        self.closing_disabled = kwargs.pop("closing_disabled")
         tags = Tag.objects.usage_for_model(Finding)
         t = [(tag.name, tag.name) for tag in tags]
         super(FindingForm, self).__init__(*args, **kwargs)
@@ -908,6 +924,10 @@ class FindingForm(forms.ModelForm):
         if cleaned_data['false_p'] and cleaned_data['verified']:
             raise forms.ValidationError('False positive findings cannot '
                                         'be verified.')
+        if self.closing_disabled != 0:
+            if ((cleaned_data['active']==False or cleaned_data['false_p']) and cleaned_data['duplicate']==False):
+                raise forms.ValidationError('Can not set a finding as inactive or false positive'
+                                            ' without adding mandatory notes.')
         return cleaned_data
 
     class Meta:
@@ -915,7 +935,6 @@ class FindingForm(forms.ModelForm):
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
         exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
-
 
 class StubFindingForm(forms.ModelForm):
     title = forms.CharField(required=True, max_length=1000)

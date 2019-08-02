@@ -196,7 +196,8 @@ def add_findings(request, tid):
     form_error = False
     enabled = False
     jform = None
-    form = AddFindingForm(initial={'date': timezone.now().date()})
+    closing_disabled = Note_Type.objects.filter(is_mandatory = True, is_active = True, Related_to = "Finding").count()
+    form = AddFindingForm(initial={'date': timezone.now().date()},closing_disabled=closing_disabled)
 
     if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
         enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -205,7 +206,7 @@ def add_findings(request, tid):
         jform = None
 
     if request.method == 'POST':
-        form = AddFindingForm(request.POST)
+        form = AddFindingForm(request.POST, closing_disabled = closing_disabled)
         if form['active'].value() is False or form['verified'].value() is False and 'jiraform-push_to_jira' in request.POST:
             error = ValidationError('Findings must be active and verified to be pushed to JIRA',
                                     code='not_active_or_verified')
@@ -298,9 +299,10 @@ def add_temp_finding(request, tid, fid):
     test = get_object_or_404(Test, id=tid)
     finding = get_object_or_404(Finding_Template, id=fid)
     findings = Finding_Template.objects.all()
+    closing_disabled = Note_Type.objects.filter(is_mandatory = True, is_active = True, Related_to = "Finding").count()
 
     if request.method == 'POST':
-        form = FindingForm(request.POST)
+        form = FindingForm(request.POST, closing_disabled=closing_disabled)
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test
@@ -372,7 +374,8 @@ def add_temp_finding(request, tid, fid):
                                     'mitigation': finding.mitigation,
                                     'impact': finding.impact,
                                     'references': finding.references,
-                                    'numerical_severity': finding.numerical_severity})
+                                    'numerical_severity': finding.numerical_severity},
+                                    closing_disabled=closing_disabled)
         if get_system_setting('enable_jira'):
             enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
             jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')

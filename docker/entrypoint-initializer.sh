@@ -45,6 +45,7 @@ User.objects.create_superuser(
 EOD
 
   python manage.py loaddata product_type
+  python manage.py loaddata note_type
   python manage.py loaddata test_type
   python manage.py loaddata development_environment
   python manage.py loaddata system_settings

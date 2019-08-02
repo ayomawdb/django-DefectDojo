@@ -3,26 +3,26 @@
     "model": "dojo.note_type",
     "pk": 1,
     "fields": {
-      "name": "Other"
-      "description": "all notes does not match with any note type"
-      "is_mandatory": false,
-      "is_active": true,
+      "name": "Other",
+      "description": "all notes does not match with any note type",
+      "Related_to":"Finding",
       "is_single": false,
-      "Related_to":"Finding"
+      "is_active": true,
+      "is_mandatory": false
+
     }
   },
-
   {
     "model": "dojo.note_type",
     "pk": 2,
     "fields": {
-      "name": "Other"
-      "description": "all notes does not match with any note type"
-      "is_mandatory": false,
-      "is_active": true,
+      "name": "Other",
+      "description": "all notes does not match with any note type",
+      "Related_to":"Test",
       "is_single": false,
-      "Related_to":"Test"
-    }
-  },
+      "is_active": true,
+      "is_mandatory": false
 
+    }
+  }
 ]

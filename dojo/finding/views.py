@@ -499,7 +499,11 @@ def delete_finding(request, fid):
 def edit_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
-    form = FindingForm(instance=finding)
+    if finding.active == True :
+        closing_disabled = len(get_mandatory_notetypes(finding))
+    else :
+        closing_disabled = 0
+    form = FindingForm(instance=finding, closing_disabled=closing_disabled)
     form.initial['tags'] = [tag.name for tag in finding.tags]
     form_error = False
     jform = None
@@ -515,7 +519,7 @@ def edit_finding(request, fid):
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
 
     if request.method == 'POST':
-        form = FindingForm(request.POST, instance=finding)
+        form = FindingForm(request.POST, instance=finding, closing_disabled=closing_disabled)
         source = request.POST.get("source", "")
         page = request.POST.get("page", "")
 

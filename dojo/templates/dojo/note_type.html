@@ -87,32 +87,20 @@
                                                      href="{% url 'edit_note_type' nt.id %}">
                                                       <i class="fa fa-pencil"></i> Edit Note Type
                                                   </a>
-                                              </div>
-                                          </div>
-                                      </td>
-                                      {% if nt.is_active %}
-                                      <td>
-                                          <div class="centered">
-                                              <div class="btn-group" role="group">
-                                                  <a class="btn btn-sm btn-warning"
+                                                  {% if nt.is_active %}
+                                                  <a class="btn btn-sm btn-danger"
                                                      href="{% url 'disable_note_type' nt.id %}">
-                                                      <i class="fa fa-pencil"></i> Disable Note Type
+                                                      <i class="fa fa-times"></i> Disable Note Type
                                                   </a>
+                                                  {% else %}
+                                                  <a class="btn btn-sm btn-success"
+                                                     href="{% url 'enable_note_type' nt.id %}">
+                                                      <i class="fa fa-check"></i> Enable Note Type
+                                                  </a>
+                                                  {% endif %}
                                               </div>
                                           </div>
                                       </td>
-                                      {% else %}
-                                        <td>
-                                            <div class="centered">
-                                                <div class="btn-group" role="group">
-                                                    <a class="btn btn-sm btn-warning"
-                                                       href="{% url 'enable_note_type' nt.id %}">
-                                                        <i class="fa fa-pencil"></i> Enable Note Type
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </td>
-                                      {% endif %}
                                   {% endif %}
                                 {% endif %}
 
