@@ -208,24 +208,28 @@ class DeleteProductForm(forms.ModelForm):
                    'platform', 'lifecycle', 'origin', 'user_records', 'revenue', 'external_audience',
                    'internet_accessible', 'regulations', 'product_meta']
 
+
 class NoteTypeForm(forms.ModelForm):
     description = forms.CharField(widget=forms.Textarea(attrs={}),
                                   required=True)
+
     class Meta:
         model = Note_Type
-        fields = ['name', 'description','Related_to','is_single','is_mandatory']
+        fields = ['name', 'description', 'Related_to', 'is_single', 'is_mandatory']
+
 
 class EditNoteTypeForm(NoteTypeForm):
 
     def __init__(self, *args, **kwargs):
         is_single = kwargs.pop('is_single')
         super(EditNoteTypeForm, self).__init__(*args, **kwargs)
-        if is_single == False:
+        if is_single is False:
             self.fields['is_single'].widget = forms.HiddenInput()
 
     class Meta(NoteTypeForm.Meta):
         model = Note_Type
         exclude = ['Related_to']
+
 
 class DisableOrEnableNoteTypeForm(NoteTypeForm):
     def __init__(self, *args, **kwargs):
@@ -240,6 +244,7 @@ class DisableOrEnableNoteTypeForm(NoteTypeForm):
     class Meta:
         model = Note_Type
         fields = '__all__'
+
 
 class DojoMetaDataForm(forms.ModelForm):
     value = forms.CharField(widget=forms.Textarea(attrs={}),
@@ -803,7 +808,7 @@ class AddFindingForm(forms.ModelForm):
             raise forms.ValidationError('False positive findings cannot '
                                         'be verified.')
         if self.closing_disabled != 0:
-            if ((cleaned_data['active']==False or cleaned_data['false_p']) and cleaned_data['duplicate']==False):
+            if ((cleaned_data['active'] is False or cleaned_data['false_p']) and cleaned_data['duplicate'] is False):
                 raise forms.ValidationError('Can not set a finding as inactive or false positive'
                                             ' without adding mandatory notes.')
         return cleaned_data
@@ -849,7 +854,7 @@ class AdHocFindingForm(forms.ModelForm):
             raise forms.ValidationError('False positive findings cannot '
                                         'be verified.')
         if self.closing_disabled != 0:
-            if ((cleaned_data['active']==False or cleaned_data['false_p']) and cleaned_data['duplicate']==False):
+            if ((cleaned_data['active'] is False or cleaned_data['false_p']) and cleaned_data['duplicate'] is False):
                 raise forms.ValidationError('Can not set a finding as inactive or false positive'
                                             ' without adding mandatory notes.')
         return cleaned_data
@@ -884,6 +889,7 @@ class PromoteFindingForm(forms.ModelForm):
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
         exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'active', 'false_p', 'verified', 'is_template',
                    'duplicate', 'out_of_scope', 'images', 'under_review', 'reviewers', 'review_requested_by')
+
 
 class FindingForm(forms.ModelForm):
     title = forms.CharField(max_length=1000)
@@ -925,7 +931,7 @@ class FindingForm(forms.ModelForm):
             raise forms.ValidationError('False positive findings cannot '
                                         'be verified.')
         if self.closing_disabled != 0:
-            if ((cleaned_data['active']==False or cleaned_data['false_p']) and cleaned_data['duplicate']==False):
+            if ((cleaned_data['active'] is False or cleaned_data['false_p']) and cleaned_data['duplicate'] is False):
                 raise forms.ValidationError('Can not set a finding as inactive or false positive'
                                             ' without adding mandatory notes.')
         return cleaned_data
@@ -935,6 +941,7 @@ class FindingForm(forms.ModelForm):
         order = ('title', 'severity', 'endpoints', 'description', 'impact')
         exclude = ('reporter', 'url', 'numerical_severity', 'endpoint', 'images', 'under_review', 'reviewers',
                    'review_requested_by')
+
 
 class StubFindingForm(forms.ModelForm):
     title = forms.CharField(required=True, max_length=1000)
@@ -1281,6 +1288,7 @@ class NoteType_NoteForm(NoteForm):
         model = Notes
         fields = ['note_type', 'entry']
 
+
 class CloseFindingForm(forms.ModelForm):
     entry = forms.CharField(
         required=True, max_length=2400,
@@ -1292,16 +1300,17 @@ class CloseFindingForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         queryset = kwargs.pop('note_types')
         super(CloseFindingForm, self).__init__(*args, **kwargs)
-        if len(queryset)==0:
+        if len(queryset) == 0:
             self.fields['note_type'].widget = forms.HiddenInput()
-            other = get_object_or_404(Note_Type, name='Other',Related_to='Finding')
+            other = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
             self.fields['note_type'].initial = other
         else:
             self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
 
     class Meta:
         model = Notes
-        fields = ['note_type','entry']
+        fields = ['note_type', 'entry']
+
 
 class DefectFindingForm(forms.ModelForm):
     CLOSE_CHOICES = (("Close Finding", "Close Finding"), ("Not Fixed", "Not Fixed"))

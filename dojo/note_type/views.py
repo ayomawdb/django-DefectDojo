@@ -13,6 +13,7 @@ from dojo.utils import get_page_items, add_breadcrumb
 
 logger = logging.getLogger(__name__)
 
+
 @user_passes_test(lambda u: u.is_superuser)
 def note_type(request):
     initial_queryset = Note_Type.objects.all().order_by('name')
@@ -29,13 +30,14 @@ def note_type(request):
         'ntl': ntl,
         'name_words': name_words})
 
+
 @user_passes_test(lambda u: u.is_superuser)
 def edit_note_type(request, ntid):
     nt = get_object_or_404(Note_Type, pk=ntid)
     is_single = nt.is_single
-    nt_form = EditNoteTypeForm(instance=nt, is_single = is_single)
+    nt_form = EditNoteTypeForm(instance=nt, is_single=is_single)
     if request.method == "POST" and request.POST.get('edit_note_type'):
-        nt_form = EditNoteTypeForm(request.POST, instance=nt, is_single = is_single)
+        nt_form = EditNoteTypeForm(request.POST, instance=nt, is_single=is_single)
         if nt_form.is_valid():
             nt = nt_form.save()
             messages.add_message(
@@ -54,13 +56,14 @@ def edit_note_type(request, ntid):
         'nt_form': nt_form,
         'nt': nt})
 
+
 @user_passes_test(lambda u: u.is_superuser)
 def disable_note_type(request, ntid):
     nt = get_object_or_404(Note_Type, pk=ntid)
     nt_form = DisableOrEnableNoteTypeForm(instance=nt)
     if request.method == "POST":
         nt_form = DisableOrEnableNoteTypeForm(request.POST, instance=nt)
-        nt.is_active=False
+        nt.is_active = False
         nt.save()
         messages.add_message(
             request,
@@ -78,13 +81,14 @@ def disable_note_type(request, ntid):
         'nt_form': nt_form,
         'nt': nt})
 
+
 @user_passes_test(lambda u: u.is_superuser)
 def enable_note_type(request, ntid):
     nt = get_object_or_404(Note_Type, pk=ntid)
-    nt_form = DisableOrEnableNoteTypeForm(instance = nt)
+    nt_form = DisableOrEnableNoteTypeForm(instance=nt)
     if request.method == "POST":
         nt_form = DisableOrEnableNoteTypeForm(request.POST, instance=nt)
-        nt.is_active=True
+        nt.is_active = True
         nt.save()
         messages.add_message(
             request,
@@ -101,6 +105,7 @@ def enable_note_type(request, ntid):
         'nt_form': nt_form,
         'nt': nt})
 
+
 @user_passes_test(lambda u: u.is_superuser)
 def add_note_type(request):
     form = NoteTypeForm()
@@ -114,4 +119,4 @@ def add_note_type(request):
                                  extra_tags='alert-success')
             return HttpResponseRedirect(reverse('note_type'))
     add_breadcrumb(title="Add Note Type", top_level=False, request=request)
-    return render(request,'dojo/add_note_type.html' , {'form' : form})
+    return render(request, 'dojo/add_note_type.html', {'form': form})

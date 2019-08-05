@@ -997,6 +997,7 @@ class DevelopmentEnvironmentFilter(DojoFilter):
         exclude = []
         include = ('name',)
 
+
 class NoteTypesFilter(DojoFilter):
     name = CharFilter(lookup_expr='icontains')
 
@@ -1013,4 +1014,4 @@ class NoteTypesFilter(DojoFilter):
     class Meta:
         model = Note_Type
         exclude = []
-        include = ('name','is_single','description')
+        include = ('name', 'is_single', 'description')

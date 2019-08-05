@@ -277,10 +277,11 @@ class Contact(models.Model):
     is_globally_read_only = models.BooleanField(default=False)
     updated = models.DateTimeField(editable=False)
 
+
 class Note_Type(models.Model):
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=200)
-    Related_to = models.CharField(max_length=20, choices=(('Finding','Finding'),('Test','Test')), null=False, blank=False)
+    Related_to = models.CharField(max_length=20, choices=(('Finding', 'Finding'), ('Test', 'Test')), null=False, blank=False)
     is_single = models.BooleanField(default=False, null=False)
     is_active = models.BooleanField(default=True, null=False)
     is_mandatory = models.BooleanField(default=True, null=False)
@@ -289,7 +290,8 @@ class Note_Type(models.Model):
         return self.name
 
     class Meta:
-        unique_together = ('name','Related_to')
+        unique_together = ('name', 'Related_to')
+
 
 class Product_Type(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -1112,7 +1114,6 @@ class Finding(models.Model):
         except:
             hash_string = hash_string.strip()
             return hashlib.sha256(hash_string).hexdigest()
-
 
     def duplicate_finding_set(self):
         return self.duplicate_list.all().order_by('title')

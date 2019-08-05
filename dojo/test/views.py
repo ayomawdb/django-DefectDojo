@@ -17,7 +17,7 @@ from django.contrib.admin.utils import NestedObjects
 from django.db import DEFAULT_DB_ALIAS
 
 from dojo.filters import TemplateFindingFilter
-from dojo.forms import NoteForm,NoteType_NoteForm, TestForm, FindingForm, \
+from dojo.forms import NoteType_NoteForm, TestForm, FindingForm, \
     DeleteTestForm, AddFindingForm, \
     ImportScanForm, ReImportScanForm, FindingBulkUpdateForm, JIRAFindingForm
 from dojo.models import Product, Finding, Test, Notes, Note_Type, BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_Mapping, Dojo_User, JIRA_Issue
@@ -44,7 +44,7 @@ def view_test(request, tid):
 
     note_types = find_available_notetypes(notes)
     if request.method == 'POST' and request.user.is_staff:
-        form = NoteType_NoteForm(request.POST,test_note_types=note_types)
+        form = NoteType_NoteForm(request.POST, test_note_types=note_types)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
@@ -196,8 +196,8 @@ def add_findings(request, tid):
     form_error = False
     enabled = False
     jform = None
-    closing_disabled = Note_Type.objects.filter(is_mandatory = True, is_active = True, Related_to = "Finding").count()
-    form = AddFindingForm(initial={'date': timezone.now().date()},closing_disabled=closing_disabled)
+    closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to="Finding").count()
+    form = AddFindingForm(initial={'date': timezone.now().date()}, closing_disabled=closing_disabled)
 
     if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
         enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -206,7 +206,7 @@ def add_findings(request, tid):
         jform = None
 
     if request.method == 'POST':
-        form = AddFindingForm(request.POST, closing_disabled = closing_disabled)
+        form = AddFindingForm(request.POST, closing_disabled=closing_disabled)
         if form['active'].value() is False or form['verified'].value() is False and 'jiraform-push_to_jira' in request.POST:
             error = ValidationError('Findings must be active and verified to be pushed to JIRA',
                                     code='not_active_or_verified')
@@ -299,7 +299,7 @@ def add_temp_finding(request, tid, fid):
     test = get_object_or_404(Test, id=tid)
     finding = get_object_or_404(Finding_Template, id=fid)
     findings = Finding_Template.objects.all()
-    closing_disabled = Note_Type.objects.filter(is_mandatory = True, is_active = True, Related_to = "Finding").count()
+    closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to="Finding").count()
 
     if request.method == 'POST':
         form = FindingForm(request.POST, closing_disabled=closing_disabled)
@@ -322,9 +322,9 @@ def add_temp_finding(request, tid, fid):
             new_finding.endpoints = form.cleaned_data['endpoints']
             new_finding.save(false_history=True)
             if 'jiraform-push_to_jira' in request.POST:
-                    jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=True)
-                    if jform.is_valid():
-                        add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))
+                jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=True)
+                if jform.is_valid():
+                    add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))
             messages.add_message(request,
                                  messages.SUCCESS,
                                  'Finding from template added successfully.',
@@ -479,7 +479,7 @@ def re_import_scan_results(request, tid):
                          "mitigated.  The process attempts to identify the differences, however manual verification " \
                          "is highly recommended."
     t = get_object_or_404(Test, id=tid)
-    note_type = get_object_or_404(Note_Type, name ='Other', Related_to = 'Finding')
+    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     scan_type = t.test_type.name
     engagement = t.engagement
     form = ReImportScanForm()
@@ -543,7 +543,7 @@ def re_import_scan_results(request, tid):
                             find.verified = verified
                             find.save()
                             note = Notes(entry="Re-activated by %s re-upload." % scan_type,
-                                         author=request.user,note_type_id = note_type.id)
+                                         author=request.user, note_type_id=note_type.id)
                             note.save()
                             find.notes.add(note)
                             reactivated_count += 1
@@ -600,7 +600,7 @@ def re_import_scan_results(request, tid):
                     finding.active = False
                     finding.save()
                     note = Notes(entry="Mitigated by %s re-upload." % scan_type,
-                                 author=request.user, note_type_id = note_type.id)
+                                 author=request.user, note_type_id=note_type.id)
                     note.save()
                     finding.notes.add(note)
                     mitigated_count += 1
@@ -647,6 +647,7 @@ def re_import_scan_results(request, tid):
                    'additional_message': additional_message,
                    })
 
+
 def find_available_notetypes(notes):
     single_note_types = Note_Type.objects.filter(is_single=True, is_active=True, Related_to='Test').values_list('id', flat=True)
     multiple_note_types = Note_Type.objects.filter(is_single=False, is_active=True, Related_to='Test').values_list('id', flat=True)
@@ -656,8 +657,8 @@ def find_available_notetypes(notes):
     for note_type_id in single_note_types:
         for note in notes:
             if note_type_id == note.note_type_id:
-                break;
+                break
         else:
             available_note_types.append(note_type_id)
-    queryset = Note_Type.objects.filter(id__in = available_note_types).order_by('-id')
+    queryset = Note_Type.objects.filter(id__in=available_note_types).order_by('-id')
     return queryset

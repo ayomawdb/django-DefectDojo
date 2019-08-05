@@ -498,7 +498,7 @@ class Migration(migrations.Migration):
                 ('is_single', models.BooleanField(default=False)),
                 ('is_active', models.BooleanField(default=True)),
                 ('is_mandatory', models.BooleanField(default=True)),
-                ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20,blank=False,choices=[(b'Finding',b'Finding'),(b'Test',b'Test')])),
+                ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20, blank=False, choices=[(b'Finding', b'Finding'), (b'Test', b'Test')])),
             ],
         ),
         migrations.CreateModel(
