@@ -1245,16 +1245,11 @@ class NoteForm(forms.ModelForm):
         fields = ['entry']
 
 
-class NoteType_NoteForm(NoteForm):
+class FindingNoteForm(NoteForm):
 
     def __init__(self, *args, **kwargs):
-        if 'finding_note_types' in kwargs:
-            queryset = kwargs.pop('finding_note_types')
-
-        if 'test_note_types' in kwargs:
-            queryset = kwargs.pop('test_note_types')
-
-        super(NoteType_NoteForm, self).__init__(*args, **kwargs)
+        queryset = kwargs.pop('available_note_types')
+        super(FindingNoteForm, self).__init__(*args, **kwargs)
         self.fields['note_type'] = forms.ModelChoiceField(queryset=queryset, label='Note Type', required=True)
 
     class Meta():

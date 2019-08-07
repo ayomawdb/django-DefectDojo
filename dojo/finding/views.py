@@ -25,7 +25,7 @@ from itertools import chain
 from dojo.filters import OpenFindingFilter, \
     OpenFingingSuperFilter, AcceptedFingingSuperFilter, \
     ClosedFingingSuperFilter, TemplateFindingFilter
-from dojo.forms import NoteForm, NoteType_NoteForm, FindingForm, CloseFindingForm, PromoteFindingForm, FindingTemplateForm, \
+from dojo.forms import NoteForm, FindingNoteForm, FindingForm, CloseFindingForm, PromoteFindingForm, FindingTemplateForm, \
     DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
     DefectFindingForm, StubFindingForm, DeleteFindingForm, DeleteStubFindingForm, ApplyFindingTemplateForm, \
     FindingFormID, FindingBulkUpdateForm, MergeFindings
@@ -236,7 +236,7 @@ def view_finding(request, fid):
         available_note_types = find_available_notetypes(notes)
     if request.method == 'POST':
         if note_type_activation:
-            form = NoteType_NoteForm(request.POST, finding_note_types=available_note_types)
+            form = FindingNoteForm(request.POST, available_note_types=available_note_types)
         else:
             form = NoteForm(request.POST)
         if form.is_valid():
@@ -251,7 +251,7 @@ def view_finding(request, fid):
             if jissue is not None:
                 add_comment_task(finding, new_note)
             if note_type_activation:
-                form = NoteType_NoteForm(finding_note_types=available_note_types)
+                form = FindingNoteForm(available_note_types=available_note_types)
             else:
                 form = NoteForm()
             url = request.build_absolute_uri(
@@ -267,7 +267,7 @@ def view_finding(request, fid):
                 reverse('view_finding', args=(finding.id, )))
     else:
         if note_type_activation:
-            form = NoteType_NoteForm(finding_note_types=available_note_types)
+            form = FindingNoteForm(available_note_types=available_note_types)
         else:
             form = NoteForm()
 

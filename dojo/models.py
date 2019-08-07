@@ -1114,6 +1114,7 @@ class Finding(models.Model):
     def duplicate_finding_set(self):
         return self.duplicate_list.all().order_by('title')
 
+
     def get_scanner_confidence_text(self):
         scanner_confidence_text = ""
         scanner_confidence = self.scanner_confidence

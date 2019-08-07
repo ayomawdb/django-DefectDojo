@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import user_passes_test
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
-
 from dojo.filters import ProductTypeFilter
 from dojo.forms import Product_TypeForm, Product_TypeProductForm, Delete_Product_TypeForm
 from dojo.models import Product_Type

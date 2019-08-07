@@ -311,6 +311,7 @@ def add_temp_finding(request, tid, fid):
     test = get_object_or_404(Test, id=tid)
     finding = get_object_or_404(Finding_Template, id=fid)
     findings = Finding_Template.objects.all()
+
     if request.method == 'POST':
         form = FindingForm(request.POST)
         if (form['active'].value() is False or form['false_p'].value()) and form['duplicate'].value() is False:
@@ -348,9 +349,9 @@ def add_temp_finding(request, tid, fid):
             new_finding.endpoints = form.cleaned_data['endpoints']
             new_finding.save(false_history=True)
             if 'jiraform-push_to_jira' in request.POST:
-                jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=True)
-                if jform.is_valid():
-                    add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))
+                    jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=True)
+                    if jform.is_valid():
+                        add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))
             messages.add_message(request,
                                  messages.SUCCESS,
                                  'Finding from template added successfully.',
@@ -522,7 +523,7 @@ def re_import_scan_results(request, tid):
             ts = ", ".join(tags)
             t.tags = ts
             try:
-                parser = import_parser_factory(file, t, active, verified)
+                parser = import_parser_factory(file, t)
             except ValueError:
                 raise Http404()
 
