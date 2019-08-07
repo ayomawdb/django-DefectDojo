@@ -493,12 +493,11 @@ class Migration(migrations.Migration):
             name='Note_Type',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
+                ('name', models.CharField(max_length=100, unique=True)),
                 ('description', models.CharField(max_length=200)),
                 ('is_single', models.BooleanField(default=False)),
                 ('is_active', models.BooleanField(default=True)),
                 ('is_mandatory', models.BooleanField(default=True)),
-                ('related_to', multiselectfield.db.fields.MultiSelectField(max_length=20, blank=False, choices=[(b'Finding', b'Finding'), (b'Test', b'Test')])),
             ],
         ),
         migrations.CreateModel(
@@ -1356,9 +1355,5 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name='benchmark_product',
             unique_together=set([('product', 'control')]),
-        ),
-        migrations.AlterUniqueTogether(
-            name='note_type',
-            unique_together=set([('name', 'related_to')]),
         ),
     ]

@@ -10,7 +10,7 @@ from collections import OrderedDict
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponse
 from django.http import HttpResponseRedirect, HttpResponseForbidden
@@ -25,7 +25,7 @@ from itertools import chain
 from dojo.filters import OpenFindingFilter, \
     OpenFingingSuperFilter, AcceptedFingingSuperFilter, \
     ClosedFingingSuperFilter, TemplateFindingFilter
-from dojo.forms import NoteType_NoteForm, FindingForm, CloseFindingForm, PromoteFindingForm, FindingTemplateForm, \
+from dojo.forms import NoteForm, NoteType_NoteForm, FindingForm, CloseFindingForm, PromoteFindingForm, FindingTemplateForm, \
     DeleteFindingTemplateForm, FindingImageFormSet, JIRAFindingForm, ReviewFindingForm, ClearFindingReviewForm, \
     DefectFindingForm, StubFindingForm, DeleteFindingForm, DeleteStubFindingForm, ApplyFindingTemplateForm, \
     FindingFormID, FindingBulkUpdateForm, MergeFindings
@@ -231,9 +231,14 @@ def view_finding(request, fid):
         raise PermissionDenied
 
     notes = finding.notes.all()
-    note_types = find_available_notetypes(notes)
+    note_type_activation = Note_Type.objects.filter(is_active=True).count()
+    if note_type_activation:
+        available_note_types = find_available_notetypes(notes)
     if request.method == 'POST':
-        form = NoteType_NoteForm(request.POST, finding_note_types=note_types)
+        if note_type_activation:
+            form = NoteType_NoteForm(request.POST, finding_note_types=available_note_types)
+        else:
+            form = NoteForm(request.POST)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
@@ -245,7 +250,10 @@ def view_finding(request, fid):
             finding.save()
             if jissue is not None:
                 add_comment_task(finding, new_note)
-            form = NoteType_NoteForm(finding_note_types=note_types)
+            if note_type_activation:
+                form = NoteType_NoteForm(finding_note_types=available_note_types)
+            else:
+                form = NoteForm()
             url = request.build_absolute_uri(
                 reverse("view_finding", args=(finding.id, )))
             title = "Finding: " + finding.title
@@ -258,7 +266,10 @@ def view_finding(request, fid):
             return HttpResponseRedirect(
                 reverse('view_finding', args=(finding.id, )))
     else:
-        form = NoteType_NoteForm(finding_note_types=note_types)
+        if note_type_activation:
+            form = NoteType_NoteForm(finding_note_types=available_note_types)
+        else:
+            form = NoteForm()
 
     try:
         reqres = BurpRawRequestResponse.objects.get(finding=finding)
@@ -296,10 +307,14 @@ def close_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     # in order to close a finding, we need to capture why it was closed
     # we can do this with a Note
-    note_types = get_mandatory_notetypes(finding)
-    form = CloseFindingForm(note_types=note_types)
+    note_type_activation = Note_Type.objects.filter(is_active=True)
+    if len(note_type_activation):
+        missing_note_types = get_missing_mandatory_notetypes(finding)
+    else:
+        missing_note_types = note_type_activation
+    form = CloseFindingForm(missing_note_types=missing_note_types)
     if request.method == 'POST':
-        form = CloseFindingForm(request.POST, note_types=note_types)
+        form = CloseFindingForm(request.POST, missing_note_types=missing_note_types)
         if form.is_valid():
             now = timezone.now()
             new_note = form.save(commit=False)
@@ -335,7 +350,7 @@ def close_finding(request, fid):
                 return HttpResponseRedirect(
                     reverse('close_finding', args=(finding.id, )))
     else:
-        form = CloseFindingForm(note_types=note_types)
+        form = CloseFindingForm(missing_note_types=missing_note_types)
 
     product_tab = Product_Tab(finding.test.engagement.product.id, title="Close", tab="findings")
 
@@ -352,7 +367,6 @@ def close_finding(request, fid):
 @user_passes_test(lambda u: u.is_staff)
 def defect_finding_review(request, fid):
     finding = get_object_or_404(Finding, id=fid)
-    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     # in order to close a finding, we need to capture why it was closed
     # we can do this with a Note
     if request.method == 'POST':
@@ -363,7 +377,6 @@ def defect_finding_review(request, fid):
             new_note = form.save(commit=False)
             new_note.author = request.user
             new_note.date = now
-            new_note.note_type_id = note_type.id
             new_note.save()
             finding.notes.add(new_note)
             finding.under_defect_review = False
@@ -500,11 +513,7 @@ def delete_finding(request, fid):
 def edit_finding(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     old_status = finding.status()
-    if finding.active:
-        closing_disabled = len(get_mandatory_notetypes(finding))
-    else:
-        closing_disabled = 0
-    form = FindingForm(instance=finding, closing_disabled=closing_disabled)
+    form = FindingForm(instance=finding)
     form.initial['tags'] = [tag.name for tag in finding.tags]
     form_error = False
     jform = None
@@ -520,9 +529,28 @@ def edit_finding(request, fid):
         jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
 
     if request.method == 'POST':
-        form = FindingForm(request.POST, instance=finding, closing_disabled=closing_disabled)
+        form = FindingForm(request.POST, instance=finding)
         source = request.POST.get("source", "")
         page = request.POST.get("page", "")
+        if finding.active:
+            if (form['active'].value() is False or form['false_p'].value()) and form['duplicate'].value() is False:
+                note_type_activation = Note_Type.objects.filter(is_active=True).count()
+                closing_disabled = 0
+                if note_type_activation:
+                    closing_disabled = len(get_missing_mandatory_notetypes(finding))
+                if closing_disabled != 0:
+                    error_inactive = ValidationError('Can not set a finding as inactive without adding all mandatory notes',
+                                            code='inactive_without_mandatory_notes')
+                    error_false_p = ValidationError('Can not set a finding as false positive without adding all mandatory notes',
+                                            code='false_p_without_mandatory_notes')
+                    if form['active'].value() is False:
+                        form.add_error('active', error_inactive)
+                    if form['false_p'].value():
+                        form.add_error('false_p', error_false_p)
+                    messages.add_message(request,
+                                         messages.ERROR,
+                                         'Can not set a finding as inactive or false positive without adding all mandatory notes',
+                                         extra_tags='alert-danger')
 
         if form.is_valid():
             new_finding = form.save(commit=False)
@@ -645,7 +673,6 @@ def touch_finding(request, fid):
 @user_passes_test(lambda u: u.is_staff)
 def request_finding_review(request, fid):
     finding = get_object_or_404(Finding, id=fid)
-    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     user = get_object_or_404(Dojo_User, id=request.user.id)
     # in order to review a finding, we need to capture why a review is needed
     # we can do this with a Note
@@ -659,7 +686,6 @@ def request_finding_review(request, fid):
             new_note.entry = "Review Request: " + form.cleaned_data['entry']
             new_note.author = request.user
             new_note.date = now
-            new_note.note_type_id = note_type.id
             new_note.save()
             finding.notes.add(new_note)
             finding.active = False
@@ -704,7 +730,6 @@ def request_finding_review(request, fid):
 def clear_finding_review(request, fid):
     finding = get_object_or_404(Finding, id=fid)
     user = get_object_or_404(Dojo_User, id=request.user.id)
-    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     # in order to clear a review for a finding, we need to capture why and how it was reviewed
     # we can do this with a Note
 
@@ -722,7 +747,6 @@ def clear_finding_review(request, fid):
             new_note.entry = "Review Cleared: " + form.cleaned_data['entry']
             new_note.author = request.user
             new_note.date = now
-            new_note.note_type_id = note_type.id
             new_note.save()
 
             finding = form.save(commit=False)
@@ -1059,7 +1083,6 @@ def templates(request):
 
 
 def apply_cwe_mitigation(apply_to_findings, template, update=True):
-    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     count = 0
     if apply_to_findings and template.template_match and template.cwe is not None:
         # Update active, verified findings with the CWE template
@@ -1094,7 +1117,6 @@ def apply_cwe_mitigation(apply_to_findings, template, update=True):
                     new_note = Notes()
                     new_note.entry = 'CWE remediation text applied to finding for CWE: %s using template: %s.' % (template.cwe, template.title)
                     new_note.author, created = User.objects.get_or_create(username='System')
-                    new_note.note_type_id = note_type.id
                     new_note.save()
                     finding.notes.add(new_note)
                     finding.save()
@@ -1339,7 +1361,6 @@ def download_finding_pic(request, token):
 @user_passes_test(lambda u: u.is_staff)
 def merge_finding_product(request, pid):
     product = get_object_or_404(Product, pk=pid)
-    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     finding_to_update = request.GET.getlist('finding_to_update')
     findings = None
 
@@ -1401,7 +1422,7 @@ def merge_finding_product(request, pid):
                         # Add merge finding information to the note if set to inactive
                         if form.cleaned_data['finding_action'] == "inactive":
                             single_finding_notes_entry = "Finding has been set to inactive and merged with the finding: {}.".format(finding_to_merge_into.title)
-                            note = Notes(entry=single_finding_notes_entry, author=request.user, note_type_id=note_type.id)
+                            note = Notes(entry=single_finding_notes_entry, author=request.user)
                             note.save()
                             finding.notes.add(note)
 
@@ -1452,7 +1473,7 @@ def merge_finding_product(request, pid):
                         findings_to_merge.delete()
 
                     notes_entry = "Finding consists of merged findings from the following findings: {} which have been {}.".format(notes_entry[:-1], finding_action)
-                    note = Notes(entry=notes_entry, author=request.user, note_type_id=note_type.id)
+                    note = Notes(entry=notes_entry, author=request.user)
                     note.save()
                     finding_to_merge_into.notes.add(note)
 
@@ -1550,8 +1571,8 @@ def finding_bulk_update_all(request, pid=None):
 
 
 def find_available_notetypes(notes):
-    single_note_types = Note_Type.objects.filter(is_single=True, is_active=True, Related_to='Finding').values_list('id', flat=True)
-    multiple_note_types = Note_Type.objects.filter(is_single=False, is_active=True, Related_to='Finding').values_list('id', flat=True)
+    single_note_types = Note_Type.objects.filter(is_single=True, is_active=True).values_list('id', flat=True)
+    multiple_note_types = Note_Type.objects.filter(is_single=False, is_active=True).values_list('id', flat=True)
     available_note_types = []
     for note_type_id in multiple_note_types:
         available_note_types.append(note_type_id)
@@ -1565,9 +1586,9 @@ def find_available_notetypes(notes):
     return queryset
 
 
-def get_mandatory_notetypes(finding):
+def get_missing_mandatory_notetypes(finding):
     notes = finding.notes.all()
-    mandatory_note_types = Note_Type.objects.filter(Related_to="Finding", is_mandatory=True, is_active=True).values_list('id', flat=True)
+    mandatory_note_types = Note_Type.objects.filter(is_mandatory=True, is_active=True).values_list('id', flat=True)
     notes_to_be_added = []
     for note_type_id in mandatory_note_types:
         for note in notes:

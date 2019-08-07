@@ -47,7 +47,6 @@
                             <th> Single/Multiple</th>
                             <th> Mandatory/Optional</th>
                             <th> Active/Disabled</th>
-                            <th> Related_to</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -76,32 +75,28 @@
                                 <a>Disabled</a>
                                 {% endif %}
                               </td>
-                              <td><a>{{ nt.Related_to }}</a></td>
-
                               {% if user.is_superuser %}
-                                {% if nt.name != "Other" %}
-                                      <td>
-                                          <div class="centered">
-                                              <div class="btn-group" role="group">
-                                                  <a class="btn btn-sm btn-warning"
-                                                     href="{% url 'edit_note_type' nt.id %}">
-                                                      <i class="fa fa-pencil"></i> Edit Note Type
-                                                  </a>
-                                                  {% if nt.is_active %}
-                                                  <a class="btn btn-sm btn-danger"
-                                                     href="{% url 'disable_note_type' nt.id %}">
-                                                      <i class="fa fa-times"></i> Disable Note Type
-                                                  </a>
-                                                  {% else %}
-                                                  <a class="btn btn-sm btn-success"
-                                                     href="{% url 'enable_note_type' nt.id %}">
-                                                      <i class="fa fa-check"></i> Enable Note Type
-                                                  </a>
-                                                  {% endif %}
-                                              </div>
-                                          </div>
-                                      </td>
-                                  {% endif %}
+                                    <td>
+                                        <div class="centered">
+                                            <div class="btn-group" role="group">
+                                                <a class="btn btn-sm btn-warning"
+                                                   href="{% url 'edit_note_type' nt.id %}">
+                                                    <i class="fa fa-pencil"></i> Edit Note Type
+                                                </a>
+                                                {% if nt.is_active %}
+                                                <a class="btn btn-sm btn-danger"
+                                                   href="{% url 'disable_note_type' nt.id %}">
+                                                    <i class="fa fa-times"></i> Disable Note Type
+                                                </a>
+                                                {% else %}
+                                                <a class="btn btn-sm btn-success"
+                                                   href="{% url 'enable_note_type' nt.id %}">
+                                                    <i class="fa fa-check"></i> Enable Note Type
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
                                 {% endif %}
 
                             </tr>

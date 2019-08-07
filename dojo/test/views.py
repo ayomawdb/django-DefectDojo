@@ -17,7 +17,7 @@ from django.contrib.admin.utils import NestedObjects
 from django.db import DEFAULT_DB_ALIAS
 
 from dojo.filters import TemplateFindingFilter
-from dojo.forms import NoteType_NoteForm, TestForm, FindingForm, \
+from dojo.forms import NoteForm, TestForm, FindingForm, \
     DeleteTestForm, AddFindingForm, \
     ImportScanForm, ReImportScanForm, FindingBulkUpdateForm, JIRAFindingForm
 from dojo.models import Product, Finding, Test, Notes, Note_Type, BurpRawRequestResponse, Endpoint, Stub_Finding, Finding_Template, JIRA_PKey, Cred_Mapping, Dojo_User, JIRA_Issue
@@ -42,16 +42,15 @@ def view_test(request, tid):
     cred_test = Cred_Mapping.objects.filter(test=test).select_related('cred_id').order_by('cred_id')
     creds = Cred_Mapping.objects.filter(engagement=test.engagement).select_related('cred_id').order_by('cred_id')
 
-    note_types = find_available_notetypes(notes)
     if request.method == 'POST' and request.user.is_staff:
-        form = NoteType_NoteForm(request.POST, test_note_types=note_types)
+        form = NoteForm(request.POST)
         if form.is_valid():
             new_note = form.save(commit=False)
             new_note.author = request.user
             new_note.date = timezone.now()
             new_note.save()
             test.notes.add(new_note)
-            form = NoteType_NoteForm(test_note_types=note_types)
+            form = NoteForm()
             url = request.build_absolute_uri(reverse("view_test", args=(test.id,)))
             title = "Test: %s on %s" % (test.test_type.name, test.engagement.product.name)
             process_notifications(request, new_note, url, title)
@@ -59,10 +58,8 @@ def view_test(request, tid):
                                  messages.SUCCESS,
                                  'Note added successfully.',
                                  extra_tags='alert-success')
-            return HttpResponseRedirect(
-                reverse('view_test', args=(test.id, )))
     else:
-        form = NoteType_NoteForm(test_note_types=note_types)
+        form = NoteForm()
 
     fpage = get_page_items(request, findings, 25)
     sfpage = get_page_items(request, stub_findings, 25)
@@ -196,8 +193,7 @@ def add_findings(request, tid):
     form_error = False
     enabled = False
     jform = None
-    closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to="Finding").count()
-    form = AddFindingForm(initial={'date': timezone.now().date()}, closing_disabled=closing_disabled)
+    form = AddFindingForm(initial={'date': timezone.now().date()})
 
     if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
         enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -206,7 +202,7 @@ def add_findings(request, tid):
         jform = None
 
     if request.method == 'POST':
-        form = AddFindingForm(request.POST, closing_disabled=closing_disabled)
+        form = AddFindingForm(request.POST)
         if form['active'].value() is False or form['verified'].value() is False and 'jiraform-push_to_jira' in request.POST:
             error = ValidationError('Findings must be active and verified to be pushed to JIRA',
                                     code='not_active_or_verified')
@@ -221,6 +217,22 @@ def add_findings(request, tid):
         if form['severity'].value() == 'Info' and 'jiraform-push_to_jira' in request.POST:
             error = ValidationError('Findings with Informational severity cannot be pushed to JIRA.',
                                     code='info-severity-to-jira')
+
+        if (form['active'].value() is False or form['false_p'].value()) and form['duplicate'].value() is False:
+            closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True).count()
+            if closing_disabled != 0:
+                error_inactive = ValidationError('Can not set a finding as inactive without adding all mandatory notes',
+                                        code='inactive_without_mandatory_notes')
+                error_false_p = ValidationError('Can not set a finding as false positive without adding all mandatory notes',
+                                        code='false_p_without_mandatory_notes')
+                if form['active'].value() is False:
+                    form.add_error('active', error_inactive)
+                if form['false_p'].value():
+                    form.add_error('false_p', error_false_p)
+                messages.add_message(request,
+                                     messages.ERROR,
+                                     'Can not set a finding as inactive or false positive without adding all mandatory notes',
+                                     extra_tags='alert-danger')
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test
@@ -299,10 +311,24 @@ def add_temp_finding(request, tid, fid):
     test = get_object_or_404(Test, id=tid)
     finding = get_object_or_404(Finding_Template, id=fid)
     findings = Finding_Template.objects.all()
-    closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to="Finding").count()
-
     if request.method == 'POST':
-        form = FindingForm(request.POST, closing_disabled=closing_disabled)
+        form = FindingForm(request.POST)
+        if (form['active'].value() is False or form['false_p'].value()) and form['duplicate'].value() is False:
+            closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True).count()
+            if closing_disabled != 0:
+                error_inactive = ValidationError('Can not set a finding as inactive without adding all mandatory notes',
+                                        code='not_active_or_false_p_true')
+                error_false_p = ValidationError('Can not set a finding as false positive without adding all mandatory notes',
+                                        code='not_active_or_false_p_true')
+                if form['active'].value() is False:
+                    form.add_error('active', error_inactive)
+                if form['false_p'].value():
+                    form.add_error('false_p', error_false_p)
+                messages.add_message(request,
+                                     messages.ERROR,
+                                     'Can not set a finding as inactive or false positive without adding all mandatory notes',
+                                     extra_tags='alert-danger')
+
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test
@@ -374,8 +400,7 @@ def add_temp_finding(request, tid, fid):
                                     'mitigation': finding.mitigation,
                                     'impact': finding.impact,
                                     'references': finding.references,
-                                    'numerical_severity': finding.numerical_severity},
-                                    closing_disabled=closing_disabled)
+                                    'numerical_severity': finding.numerical_severity})
         if get_system_setting('enable_jira'):
             enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
             jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
@@ -479,7 +504,6 @@ def re_import_scan_results(request, tid):
                          "mitigated.  The process attempts to identify the differences, however manual verification " \
                          "is highly recommended."
     t = get_object_or_404(Test, id=tid)
-    note_type = get_object_or_404(Note_Type, name='Other', Related_to='Finding')
     scan_type = t.test_type.name
     engagement = t.engagement
     form = ReImportScanForm()
@@ -543,7 +567,7 @@ def re_import_scan_results(request, tid):
                             find.verified = verified
                             find.save()
                             note = Notes(entry="Re-activated by %s re-upload." % scan_type,
-                                         author=request.user, note_type_id=note_type.id)
+                                         author=request.user)
                             note.save()
                             find.notes.add(note)
                             reactivated_count += 1
@@ -600,7 +624,7 @@ def re_import_scan_results(request, tid):
                     finding.active = False
                     finding.save()
                     note = Notes(entry="Mitigated by %s re-upload." % scan_type,
-                                 author=request.user, note_type_id=note_type.id)
+                                 author=request.user)
                     note.save()
                     finding.notes.add(note)
                     mitigated_count += 1
@@ -646,19 +670,3 @@ def re_import_scan_results(request, tid):
                    'eid': engagement.id,
                    'additional_message': additional_message,
                    })
-
-
-def find_available_notetypes(notes):
-    single_note_types = Note_Type.objects.filter(is_single=True, is_active=True, Related_to='Test').values_list('id', flat=True)
-    multiple_note_types = Note_Type.objects.filter(is_single=False, is_active=True, Related_to='Test').values_list('id', flat=True)
-    available_note_types = []
-    for note_type_id in multiple_note_types:
-        available_note_types.append(note_type_id)
-    for note_type_id in single_note_types:
-        for note in notes:
-            if note_type_id == note.note_type_id:
-                break
-        else:
-            available_note_types.append(note_type_id)
-    queryset = Note_Type.objects.filter(id__in=available_note_types).order_by('-id')
-    return queryset

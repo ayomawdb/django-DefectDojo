@@ -720,7 +720,6 @@ def edit_meta_data(request, pid):
 def ad_hoc_finding(request, pid):
     prod = Product.objects.get(id=pid)
     test = None
-    closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True, Related_to="Finding").count()
     try:
         eng = Engagement.objects.get(product=prod, name="Ad Hoc Engagement")
         tests = Test.objects.filter(engagement=eng)
@@ -741,7 +740,7 @@ def ad_hoc_finding(request, pid):
     form_error = False
     enabled = False
     jform = None
-    form = AdHocFindingForm(initial={'date': timezone.now().date()}, closing_disabled=closing_disabled)
+    form = AdHocFindingForm(initial={'date': timezone.now().date()})
     if get_system_setting('enable_jira'):
         if JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
             enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
@@ -749,7 +748,22 @@ def ad_hoc_finding(request, pid):
     else:
         jform = None
     if request.method == 'POST':
-        form = AdHocFindingForm(request.POST, closing_disabled=closing_disabled)
+        form = AdHocFindingForm(request.POST)
+        if (form['active'].value() is False or form['false_p'].value()) and form['duplicate'].value() is False:
+            closing_disabled = Note_Type.objects.filter(is_mandatory=True, is_active=True).count()
+            if closing_disabled != 0:
+                error_inactive = ValidationError('Can not set a finding as inactive without adding all mandatory notes',
+                                        code='inactive_without_mandatory_notes')
+                error_false_p = ValidationError('Can not set a finding as false positive without adding all mandatory notes',
+                                        code='false_p_without_mandatory_notes')
+                if form['active'].value() is False:
+                    form.add_error('active', error_inactive)
+                if form['false_p'].value():
+                    form.add_error('false_p', error_false_p)
+                messages.add_message(request,
+                                     messages.ERROR,
+                                     'Can not set a finding as inactive or false positive without adding all mandatory notes',
+                                     extra_tags='alert-danger')
         if form.is_valid():
             new_finding = form.save(commit=False)
             new_finding.test = test

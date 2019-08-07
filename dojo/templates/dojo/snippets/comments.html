@@ -33,8 +33,10 @@
     {% endif %}
   </div>
   <div class="panel-body">
-    <strong>Note type : {{ note.note_type }}</strong>
-    <br><br>
+    {% if note.note_type != None %}
+      <strong>Note type : {{ note.note_type }}</strong>
+      <br><br>
+    {% endif %}
     {{ note.entry }}
   </div>
   </div>

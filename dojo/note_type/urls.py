@@ -13,4 +13,4 @@ urlpatterns = [
         views.enable_note_type, name='enable_note_type'),
     url(r'^add_note_type$',
         views.add_note_type, name='add_note_type'),
-    ]
+]
