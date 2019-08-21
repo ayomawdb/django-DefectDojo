@@ -1111,9 +1111,9 @@ class Finding(models.Model):
             hash_string = hash_string.strip()
             return hashlib.sha256(hash_string).hexdigest()
 
+
     def duplicate_finding_set(self):
         return self.duplicate_list.all().order_by('title')
-
 
     def get_scanner_confidence_text(self):
         scanner_confidence_text = ""
